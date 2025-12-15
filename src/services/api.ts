@@ -34,6 +34,11 @@ export const api = {
         const res = await fetch(`${API_URL}/users`);
         return res.json();
     },
+    getUser: async (id: string): Promise<User> => {
+        const res = await fetch(`${API_URL}/users/${id}`);
+        if (!res.ok) throw new Error('User not found');
+        return res.json();
+    },
 
     updateUser: async (id: string, data: Partial<User>): Promise<User> => {
         const res = await fetch(`${API_URL}/users/${id}`, {

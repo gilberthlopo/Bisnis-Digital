@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Star,
@@ -8,6 +8,12 @@ import {
   Sparkles,
   ChevronRight,
   Store,
+  Printer,
+  Camera,
+  FileText,
+  Image,
+  BookOpen,
+  ScanLine,
 } from "lucide-react";
 import type { Category, Shop } from "../App";
 
@@ -30,6 +36,46 @@ export function ShopListPage({
   let filteredShops = shops.filter((shop) =>
     shop.categories.includes(category.id),
   );
+
+  // Helper to pick a pleasant gradient based on category id
+  const getGradientForCategory = (id: string) => {
+    const gradients = [
+      "from-blue-500 to-cyan-500",
+      "from-purple-500 to-pink-500",
+      "from-orange-500 to-red-500",
+      "from-green-500 to-emerald-500",
+      "from-indigo-500 to-purple-500",
+      "from-pink-500 to-rose-500",
+    ];
+    const hash = Array.from(id).reduce((acc, c) => acc + c.charCodeAt(0), 0);
+    return gradients[Math.abs(hash) % gradients.length];
+  };
+
+  // Helper to render a matching icon for a category
+  const getIconForCategory = (name: string, props: any) => {
+    const iconMap: Record<string, any> = {
+      printer: Printer,
+      "file-text": FileText,
+      camera: Camera,
+      image: Image,
+      book: BookOpen,
+      "file-search": ScanLine,
+    };
+    const IconComp = iconMap[name] || Printer;
+    return <IconComp {...props} />;
+  };
+
+  // UI state for scroll and mount animations
+  const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Sort shops based on selected filter
   filteredShops = [...filteredShops].sort((a, b) => {
@@ -73,20 +119,41 @@ export function ShopListPage({
       </div>
 
       {/* Header */}
-      <div className="relative border-b border-gray-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-300 hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Kembali
-          </button>
-          <h1 className="text-3xl mb-2">{category.name}</h1>
-          <p className="text-gray-400">
-            {filteredShops.length} toko tersedia
-          </p>
+      <div className={`relative border-b border-gray-800 bg-black/40 sticky top-0 z-50 transition-all ${scrolled ? 'backdrop-blur-md shadow-xl' : 'backdrop-blur-sm'}`}>
+        <div className={`max-w-7xl mx-auto px-6 ${scrolled ? 'py-2' : 'py-4'} flex items-center justify-between gap-4 transition-all duration-300`}>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className="flex items-center gap-2 text-gray-300 hover:text-white transition-colors"
+              aria-label="Kembali"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-4">
+              {/* Category icon with subtle gradient */}
+              <div className={`w-14 h-14 rounded-xl flex items-center justify-center shadow-md bg-gradient-to-br ${getGradientForCategory(category.id)}`}>
+                {getIconForCategory(category.icon, { className: "w-7 h-7 text-white" })}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-2xl font-semibold">{category.name}</h1>
+                  <div className="text-xs px-3 py-1 rounded-full bg-white/6 text-white/90 border border-white/10">
+                    {filteredShops.length} toko
+                  </div>
+                </div>
+                <p className="text-gray-400 text-sm mt-1">Temukan layanan terbaik di dekat Anda</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button className="px-3 py-2 bg-gray-900/50 border border-gray-800 rounded-xl text-sm text-gray-300 hover:bg-gray-900/60 transition">Filter</button>
+            <button className="px-3 py-2 bg-gray-900/50 border border-gray-800 rounded-xl text-sm text-gray-300 hover:bg-gray-900/60 transition">Lihat di Peta</button>
+          </div>
         </div>
+        <div className="absolute left-0 right-0 bottom-0 h-6 bg-gradient-to-b from-transparent to-black/30 pointer-events-none" />
       </div>
 
       {/* Main Content */}
@@ -165,10 +232,14 @@ export function ShopListPage({
             const gradient = gradients[index % gradients.length];
             
             return (
-              <button
+              <div
                 key={shop.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => onShopSelect(shop)}
-                className="group bg-gray-900/50 backdrop-blur-md rounded-2xl border border-gray-800 hover:border-gray-700 shadow-xl hover:shadow-2xl transition-all overflow-hidden hover:scale-105 text-left"
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onShopSelect(shop); } }}
+                style={{ transitionDelay: `${index * 75}ms` }}
+                className={`group bg-gray-900/50 backdrop-blur-md rounded-2xl border border-gray-800 hover:border-gray-700 shadow-xl hover:shadow-2xl transition-all overflow-hidden hover:scale-105 text-left transform will-change-transform ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
               >
                 {/* Colorful Header with Gradient */}
                 <div className={`relative h-32 bg-gradient-to-br ${gradient} p-6 overflow-hidden`}>
@@ -255,12 +326,18 @@ export function ShopListPage({
                   </div>
 
                   {/* CTA Button */}
-                  <div className={`w-full py-3 px-4 bg-gradient-to-r ${gradient} text-white rounded-xl text-center font-semibold group-hover:shadow-lg transition-all flex items-center justify-center gap-2`}>
-                    Pilih Toko
-                    <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  <div className="mt-3">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onShopSelect(shop); }}
+                      className={`w-full py-3 px-4 bg-gradient-to-r ${gradient} text-white rounded-xl text-center font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2`}
+                      aria-label={`Pilih ${shop.name}`}
+                    >
+                      Pilih Toko
+                      <ChevronRight className="w-5 h-5 transition-transform" />
+                    </button>
                   </div>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>

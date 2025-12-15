@@ -4,6 +4,8 @@ import {
   Settings, LogOut, Tag, BarChart3, Edit, Trash2,
   Plus, Search, Filter, X, Check, ArrowUpDown, Shield, Phone, MapPin, Clock
 } from 'lucide-react';
+import { toast } from 'sonner';
+import Sparkline from './ui/sparkline';
 import type { User, Shop, Order, Category } from '../App';
 import { api } from '../services/api';
 
@@ -26,6 +28,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
   const [showAddShopModal, setShowAddShopModal] = useState(false);
   const [showEditShopModal, setShowEditShopModal] = useState(false);
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+  const [userSearch, setUserSearch] = useState('');
 
   // Form state for shop
   const [shopForm, setShopForm] = useState({
@@ -135,6 +138,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
     const shop = shops.find(s => s.id === shopId);
     if (!shop) return;
 
+    if (!confirm(`Yakin ingin ${shop.isActive ? 'menonaktifkan' : 'mengaktifkan'} toko "${shop.name}"?`)) return;
     try {
       const updatedShop = await api.updateShop(shopId, {
         ...shop,
@@ -142,8 +146,24 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
       });
 
       onUpdateShops(shops.map(s => s.id === shopId ? updatedShop : s));
+      toast.success(`Toko ${updatedShop.name} berhasil ${updatedShop.isActive ? 'diaktifkan' : 'dinonaktifkan'}`);
     } catch (e: any) {
-      alert(e.message || 'Gagal update status');
+      toast.error(e.message || 'Gagal update status');
+    }
+  };
+
+  // Toggle user activation
+  const handleToggleUserStatus = async (userId: string) => {
+    const u = users.find(x => x.id === userId);
+    if (!u) return;
+
+    if (!confirm(`Yakin ingin ${u.isActive ? 'menonaktifkan' : 'mengaktifkan'} pengguna "${u.name}"?`)) return;
+    try {
+      const updated = await api.updateUser(userId, { isActive: !u.isActive });
+      onUpdateUsers(users.map(x => x.id === userId ? updated : x));
+      toast.success(`Pengguna ${updated.name} berhasil ${updated.isActive ? 'diaktifkan' : 'dinonaktifkan'}`);
+    } catch (e: any) {
+      toast.error(e.message || 'Gagal update status pengguna');
     }
   };
 
@@ -161,6 +181,23 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
       categories: shop.categories
     });
     setShowEditShopModal(true);
+  };
+
+  // Utility: return 7 values for the last 7 days (oldest -> newest)
+  const getLast7DaysOrderCounts = (orders: Order[]) => {
+    const counts: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+      const c = orders.filter(o => {
+        const t = new Date(o.createdAt).getTime();
+        return t >= dayStart.getTime() && t < dayEnd.getTime();
+      }).length;
+      counts.push(c);
+    }
+    return counts;
   };
 
   return (
@@ -261,8 +298,84 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                 </p>
               </div>
             </div>
+            {/* Recent & Actions */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
+              <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-6 border border-gray-800 shadow-xl">
+                <h3 className="text-lg text-white mb-3">Aktivitas Terbaru</h3>
+                {orders.length === 0 ? (
+                  <div className="text-gray-400 text-sm">Belum ada pesanan. Tampilkan tips atau CTA untuk mulai menerima pesanan.</div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-gray-300 text-sm">Pesanan dalam 7 hari terakhir</div>
+                      <div className="text-xs text-gray-400">Total: {orders.length}</div>
+                    </div>
+                    <div className="mb-3">
+                      {/* sparkline */}
+                      <Sparkline values={getLast7DaysOrderCounts(orders)} />
+                    </div>
+                    <div className="space-y-3">
+                      {orders.slice(0,3).map(o => (
+                        <div key={o.id} className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm text-white">{o.id}</div>
+                            <div className="text-xs text-gray-400">{o.category} • Rp {o.totalPrice.toLocaleString()}</div>
+                          </div>
+                          <div className="text-xs text-gray-300">{new Date(o.createdAt).toLocaleDateString('id-ID')}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-6 border border-gray-800 shadow-xl">
+                <h3 className="text-lg text-white mb-3">Pengguna Terbaru</h3>
+                {users.length === 0 ? (
+                  <div className="text-gray-400 text-sm">Belum ada pengguna terdaftar. Ajak pengguna dengan banner promosi.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {users.slice(0,4).map(u => (
+                      <div key={u.id} className="flex items-center justify-between">
+                        <div>
+                          <div className="text-sm text-white">{u.name}</div>
+                          <div className="text-xs text-gray-400">{u.email}</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-full text-xs ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{u.isActive ? 'Aktif' : 'Nonaktif'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-6 border border-gray-800 shadow-xl">
+                <h3 className="text-lg text-white mb-3">System Overview</h3>
+                <div className="space-y-3 text-sm text-gray-300">
+                  <div className="flex items-center justify-between">
+                    <div>Pengguna Nonaktif</div>
+                    <div className="font-semibold text-white">{users.filter(u => !u.isActive).length}</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>Pesanan Menunggu</div>
+                    <div className="font-semibold text-white">{orders.filter(o => o.status === 'pending').length}</div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>Toko Nonaktif</div>
+                    <div className="font-semibold text-white">{shops.filter(s => !s.isActive).length}</div>
+                  </div>
+                  <div className="pt-3">
+                    <button onClick={() => setActiveTab('users')} className="w-full px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white">Kelola Pengguna</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
+
+        {/* helpers: compute recent 7 day counts */}
+        
 
         {/* Shops Tab */}
         {activeTab === 'shops' && (
@@ -360,8 +473,21 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
         {activeTab === 'users' && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-gray-800 mb-2">Kelola Pengguna</h2>
-              <p className="text-gray-600">{users.length} pengguna terdaftar</p>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-gray-800 mb-2">Kelola Pengguna</h2>
+                  <p className="text-gray-600">{users.length} pengguna terdaftar</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="search"
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="Cari nama atau email"
+                    className="px-4 py-2 rounded-xl bg-gray-50/5 border border-gray-800 text-sm placeholder-gray-400 focus:outline-none"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="bg-white rounded-2xl shadow-xl p-6 border-2 border-gray-100 overflow-x-auto">
@@ -376,7 +502,11 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => {
+                  {users.filter(u => {
+                    const q = userSearch.trim().toLowerCase();
+                    if (!q) return true;
+                    return u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+                  }).map((u) => {
                     const userOrders = orders.filter(o => o.userId === u.id);
                     return (
                       <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
@@ -392,11 +522,20 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                         </td>
                         <td className="p-4 text-gray-600">{userOrders.length} pesanan</td>
                         <td className="p-4">
-                          <span className={`px-3 py-1 rounded-lg text-sm ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                            {u.isActive ? 'Aktif' : 'Nonaktif'}
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className={`px-3 py-1 rounded-lg text-sm ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{u.isActive ? 'Aktif' : 'Nonaktif'}</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleToggleUserStatus(u.id)}
+                                className={`p-2 rounded-xl transition ${u.isActive ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}
+                                title={u.isActive ? 'Nonaktifkan pengguna' : 'Aktifkan pengguna'}
+                              >
+                                {u.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                              </button>
+                            </div>
+                          </div>
                         </td>
+                        {/* no delete action per policy, use activate/deactivate only */}
                       </tr>
                     );
                   })}
