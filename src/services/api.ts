@@ -69,7 +69,7 @@ export const api = {
 
     // Orders
     getOrders: async (userId?: string, shopId?: string): Promise<Order[]> => {
-        const url = new URL(`${API_URL}/orders`);
+        const url = new URL(`${API_URL}/orders`, window.location.origin);
         if (userId) url.searchParams.append('userId', userId);
         if (shopId) url.searchParams.append('shopId', shopId);
 
