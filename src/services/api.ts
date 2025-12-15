@@ -35,6 +35,16 @@ export const api = {
         return res.json();
     },
 
+    updateUser: async (id: string, data: Partial<User>): Promise<User> => {
+        const res = await fetch(`${API_URL}/users/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+        if (!res.ok) throw new Error('Failed to update profile');
+        return res.json();
+    },
+
     // Shops
     getShops: async (): Promise<Shop[]> => {
         const res = await fetch(`${API_URL}/shops`);

@@ -390,24 +390,29 @@ export default function App() {
     setCurrentPage("roleSelection");
   };
 
-  const handleUpdateProfile = (name: string, email: string, phone: string, address: string) => {
+  const handleUpdateProfile = async (name: string, email: string, phone: string, address: string) => {
     if (!user) return;
 
-    const updatedUser: User = {
-      ...user,
-      name,
-      email,
-      phone,
-      address,
-    };
+    try {
+      const updatedUser = await api.updateUser(user.id, {
+        name,
+        email,
+        phone,
+        address,
+      });
 
-    setUser(updatedUser);
-    // Update in users array as well
-    setUsers(
-      users.map((u) =>
-        u.id === updatedUser.id ? updatedUser : u,
-      ),
-    );
+      setUser(updatedUser);
+      // Update in users array as well
+      setUsers(
+        users.map((u) =>
+          u.id === updatedUser.id ? updatedUser : u,
+        ),
+      );
+      alert("Profil berhasil diperbarui!");
+    } catch (e: any) {
+      console.error("Failed to check update profile", e);
+      alert("Gagal memperbarui profil: " + (e.message || "Unknown error"));
+    }
   };
 
   const handleSendMessage = (orderId: string, text: string, sender: 'customer' | 'shop') => {

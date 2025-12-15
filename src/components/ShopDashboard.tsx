@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
-import { 
-  Store, ShoppingBag, TrendingUp, Settings, 
-  LogOut, Plus, Edit, Trash2, Check, X, 
+import { api } from '../services/api';
+import {
+  Store, ShoppingBag, TrendingUp, Settings,
+  LogOut, Plus, Edit, Trash2, Check, X,
   Clock, Calendar, DollarSign, Package, Star,
   FileText, Image as ImageIcon, Printer, XCircle, AlertCircle
 } from 'lucide-react';
@@ -61,7 +62,7 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
         // ignore
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, shops, orders]);
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'settings'>('overview');
   const [orderFilter, setOrderFilter] = useState<'all' | 'pending' | 'processing' | 'ready' | 'completed'>('all');
@@ -70,7 +71,7 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
   const [rejectionReason, setRejectionReason] = useState('');
 
   const myShop = shops.find(s => s.userId === user.id);
-  
+
   if (!myShop) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] text-white flex items-center justify-center">
@@ -90,30 +91,39 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
   }
 
   const myOrders = orders.filter(order => order.shopId === myShop.id);
-  const filteredOrders = orderFilter === 'all' 
-    ? myOrders 
+  const filteredOrders = orderFilter === 'all'
+    ? myOrders
     : myOrders.filter(order => order.status === orderFilter);
 
   const pendingOrders = myOrders.filter(o => o.status === 'pending').length;
   const processingOrders = myOrders.filter(o => o.status === 'processing').length;
   const todayRevenue = myOrders
-    .filter(o => o.status === 'completed' && 
+    .filter(o => o.status === 'completed' &&
       new Date(o.createdAt).toDateString() === new Date().toDateString())
     .reduce((sum, o) => sum + o.totalPrice, 0);
   const totalRevenue = myOrders
     .filter(o => o.status === 'completed')
     .reduce((sum, o) => sum + o.totalPrice, 0);
 
-  const handleUpdateStatus = (orderId: string, newStatus: Order['status'], reason?: string) => {
-    const updatedOrders = orders.map(order => 
-      order.id === orderId 
-        ? { ...order, status: newStatus, rejectionReason: reason }
-        : order
-    );
-    onUpdateOrders(updatedOrders);
-    setShowOrderDetailModal(false);
-    setSelectedOrder(null);
-    setRejectionReason('');
+  const handleUpdateStatus = async (orderId: string, newStatus: Order['status'], reason?: string) => {
+    try {
+      // 1. Update in Backend
+      await api.updateOrderStatus(orderId, newStatus, reason);
+
+      // 2. Update Local State
+      const updatedOrders = orders.map(order =>
+        order.id === orderId
+          ? { ...order, status: newStatus, rejectionReason: reason }
+          : order
+      );
+      onUpdateOrders(updatedOrders);
+      setShowOrderDetailModal(false);
+      setSelectedOrder(null);
+      setRejectionReason('');
+    } catch (error) {
+      console.error("Failed to update status", error);
+      alert("Gagal mengupdate status pesanan");
+    }
   };
 
   const handleRejectOrder = () => {
@@ -173,11 +183,10 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all ${
-                    activeTab === tab.id
-                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
-                      : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800/50'
-                  }`}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-xl transition-all ${activeTab === tab.id
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-lg'
+                    : 'bg-gray-900/50 text-gray-400 hover:bg-gray-800/50'
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   {tab.label}
@@ -260,12 +269,11 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
                     </div>
                     <div className="text-right">
                       <p className="text-white">Rp {order.totalPrice.toLocaleString()}</p>
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        order.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                      <span className={`text-xs px-2 py-1 rounded-full ${order.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
                         order.status === 'processing' ? 'bg-blue-500/20 text-blue-400' :
-                        order.status === 'ready' ? 'bg-green-500/20 text-green-400' :
-                        'bg-gray-500/20 text-gray-400'
-                      }`}>
+                          order.status === 'ready' ? 'bg-green-500/20 text-green-400' :
+                            'bg-gray-500/20 text-gray-400'
+                        }`}>
                         {order.status}
                       </span>
                     </div>
@@ -292,11 +300,10 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
                   <button
                     key={filter.value}
                     onClick={() => setOrderFilter(filter.value as any)}
-                    className={`px-5 py-3 rounded-xl transition-all border-2 ${
-                      orderFilter === filter.value
-                        ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-transparent'
-                        : 'bg-gray-800/50 text-gray-300 border-gray-700'
-                    }`}
+                    className={`px-5 py-3 rounded-xl transition-all border-2 ${orderFilter === filter.value
+                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white border-transparent'
+                      : 'bg-gray-800/50 text-gray-300 border-gray-700'
+                      }`}
                   >
                     {filter.label} ({filter.count})
                   </button>
@@ -323,13 +330,12 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
                       </div>
                       <div className="text-right">
                         <p className="text-2xl text-white mb-1">Rp {order.totalPrice.toLocaleString()}</p>
-                        <span className={`px-3 py-1 rounded-full text-sm border ${
-                          order.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                        <span className={`px-3 py-1 rounded-full text-sm border ${order.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
                           order.status === 'processing' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
-                          order.status === 'ready' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                          order.status === 'completed' ? 'bg-gray-500/20 text-gray-400 border-gray-500/30' :
-                          'bg-red-500/20 text-red-400 border-red-500/30'
-                        }`}>
+                            order.status === 'ready' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                              order.status === 'completed' ? 'bg-gray-500/20 text-gray-400 border-gray-500/30' :
+                                'bg-red-500/20 text-red-400 border-red-500/30'
+                          }`}>
                           {order.status}
                         </span>
                       </div>
