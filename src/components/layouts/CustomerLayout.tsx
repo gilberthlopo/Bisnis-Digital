@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, useNavigate, useLocation, Navigate } from "react-router-dom";
 import { Store, ShoppingBag, User, LogOut } from "lucide-react";
 import type { User as UserType, Order } from "../../App";
@@ -23,6 +24,40 @@ export function CustomerLayout({ user, orders, onLogout }: CustomerLayoutProps) 
             o.userId === user.id &&
             ["pending", "processing", "ready"].includes(o.status)
     ).length;
+
+    const [showNotifications, setShowNotifications] = useState(false);
+
+    // Derive notifications from orders
+    const notifications = orders
+        .filter(o => o.userId === user.id && ['ready', 'processing', 'rejected', 'completed'].includes(o.status))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .slice(0, 5) // Show top 5
+        .map(order => {
+            let message = "";
+            let color = "";
+            switch (order.status) {
+                case 'ready':
+                    message = `Pesanan #${order.id.slice(-4)} siap diambil! 🎁`;
+                    color = "text-green-400";
+                    break;
+                case 'processing':
+                    message = `Pesanan #${order.id.slice(-4)} sedang diproses 🛠️`;
+                    color = "text-blue-400";
+                    break;
+                case 'rejected':
+                    message = `Pesanan #${order.id.slice(-4)} dibatalkan/ditolak ❌`;
+                    color = "text-red-400";
+                    break;
+                case 'completed':
+                    message = `Pesanan #${order.id.slice(-4)} selesai. Terima kasih! ✅`;
+                    color = "text-gray-400";
+                    break;
+                default:
+                    message = `Update pada pesanan #${order.id.slice(-4)}`;
+                    color = "text-white";
+            }
+            return { id: order.id, message, color, time: order.createdAt };
+        });
 
     return (
         <div className="min-h-screen bg-[#0A0A0A] text-white">
@@ -78,11 +113,52 @@ export function CustomerLayout({ user, orders, onLogout }: CustomerLayoutProps) 
                         </div>
 
                         {/* Notification & Actions */}
-                        <div className="flex items-center gap-4 pl-3 md:border-l border-gray-800">
-                            <button className="relative p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all">
-                                <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0A0A0A]"></div>
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
-                            </button>
+                        <div className="flex items-center gap-4 pl-3 md:border-l border-gray-800 relative">
+                            {/* Notification Dropdown */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    className="relative p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all"
+                                >
+                                    {notifications.length > 0 && (
+                                        <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0A0A0A]"></div>
+                                    )}
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" /></svg>
+                                </button>
+
+                                {showNotifications && (
+                                    <div className="absolute right-0 mt-2 w-80 bg-gray-900 border border-gray-800 rounded-2xl shadow-xl z-50 overflow-hidden">
+                                        <div className="p-4 border-b border-gray-800">
+                                            <h3 className="text-white font-semibold">Notifikasi</h3>
+                                        </div>
+                                        <div className="max-h-80 overflow-y-auto">
+                                            {notifications.length === 0 ? (
+                                                <div className="p-6 text-center text-gray-500 text-sm">
+                                                    Belum ada notifikasi baru
+                                                </div>
+                                            ) : (
+                                                notifications.map((notif) => (
+                                                    <div
+                                                        key={notif.id}
+                                                        onClick={() => {
+                                                            navigate("/dashboard/orders");
+                                                            setShowNotifications(false);
+                                                        }}
+                                                        className="p-4 border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors"
+                                                    >
+                                                        <p className={`text-sm font-medium ${notif.color} mb-1`}>
+                                                            {notif.message}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {new Date(notif.time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                             {/* Profile Button - Mobile & Desktop */}
                             <button
                                 onClick={() => navigate("/dashboard/profile")}

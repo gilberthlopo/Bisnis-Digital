@@ -378,7 +378,10 @@ export function OrderTrackingPage({
                       </button>
 
                       <button
-                        onClick={() => setShowChat(true)}
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setShowChat(true);
+                        }}
                         className="px-5 py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-700 transition-all border border-gray-700 flex items-center gap-2"
                       >
                         <MessageCircle className="w-5 h-5" />

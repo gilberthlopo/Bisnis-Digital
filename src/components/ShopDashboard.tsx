@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { ChatModal, type ChatMessage } from './ChatModal';
 import { supabase } from '../utils/supabaseClient';
 import { api } from '../services/api';
 import {
   Store, ShoppingBag, TrendingUp, Settings,
   LogOut, Plus, Edit, Trash2, Check, X,
   Clock, Calendar, DollarSign, Package, Star,
-  FileText, Image as ImageIcon, Printer, XCircle, AlertCircle
+  FileText, Image as ImageIcon, Printer, XCircle, AlertCircle, MessageCircle
 } from 'lucide-react';
 import type { User, Order, ServiceDetail, Shop } from '../App';
 
@@ -64,11 +65,43 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, shops, orders]);
+
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'settings'>('overview');
   const [orderFilter, setOrderFilter] = useState<'all' | 'pending' | 'processing' | 'ready' | 'completed'>('all');
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+
+  // Chat State
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Load messages
+  useEffect(() => {
+    if (showChat && selectedOrder) {
+      loadMessages(selectedOrder.id);
+      const interval = setInterval(() => loadMessages(selectedOrder!.id), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [showChat, selectedOrder]);
+
+  const loadMessages = async (orderId: string) => {
+    try {
+      const msgs = await api.getMessages(orderId);
+      setChatMessages(msgs);
+    } catch (e) {
+      console.error("Failed to load messages", e);
+    }
+  };
+
+  const handleSendMessage = async (orderId: string, text: string, sender: 'customer' | 'shop') => {
+    try {
+      const newMsg = await api.sendMessage(orderId, text, sender);
+      setChatMessages(prev => [...prev, newMsg]);
+    } catch (e) {
+      alert("Gagal mengirim pesan");
+    }
+  };
 
   const myShop = shops.find(s => s.userId === user.id);
 
@@ -426,23 +459,44 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
         )}
       </div>
 
+      {/* Chat Modal */}
+      {showChat && selectedOrder && (
+        <ChatModal
+          orderId={selectedOrder.id}
+          shopName={getCustomerName(selectedOrder.userId)}
+          currentUserRole="shop"
+          messages={chatMessages}
+          onSendMessage={handleSendMessage}
+          onClose={() => setShowChat(false)}
+        />
+      )}
+
       {/* Order Detail Modal */}
-      {showOrderDetailModal && selectedOrder && (
+      {showOrderDetailModal && selectedOrder && !showChat && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-6">
           <div className="bg-gray-900 rounded-2xl border border-gray-800 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-800">
               <div className="flex items-center justify-between">
                 <h3 className="text-white text-xl">Detail Pesanan #{selectedOrder.id}</h3>
-                <button
-                  onClick={() => {
-                    setShowOrderDetailModal(false);
-                    setSelectedOrder(null);
-                    setRejectionReason('');
-                  }}
-                  className="p-2 hover:bg-gray-800 rounded-lg transition-all"
-                >
-                  <X className="w-5 h-5 text-gray-400" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowChat(true)}
+                    className="px-3 py-2 bg-blue-600/20 text-blue-400 border border-blue-600/30 rounded-lg hover:bg-blue-600/30 transition-all flex items-center gap-2 text-sm"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Chat Pelanggan
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowOrderDetailModal(false);
+                      setSelectedOrder(null);
+                      setRejectionReason('');
+                    }}
+                    className="p-2 hover:bg-gray-800 rounded-lg transition-all"
+                  >
+                    <X className="w-5 h-5 text-gray-400" />
+                  </button>
+                </div>
               </div>
             </div>
 

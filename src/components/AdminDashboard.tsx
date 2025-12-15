@@ -201,7 +201,6 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
               { id: 'shops', label: 'Toko', icon: Store },
               { id: 'users', label: 'Pengguna', icon: Users },
               { id: 'orders', label: 'Pesanan', icon: ShoppingBag },
-              { id: 'promos', label: 'Promo', icon: Tag },
             ].map((tab) => {
               const Icon = tab.icon;
               return (
@@ -254,11 +253,11 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
 
               <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-6 shadow-xl">
                 <div className="p-3 bg-white/20 rounded-xl w-fit mb-4">
-                  <TrendingUp className="w-6 h-6 text-white" />
+                  <Check className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-purple-100 text-sm mb-1">Total Revenue</p>
+                <p className="text-purple-100 text-sm mb-1">Pesanan Selesai</p>
                 <p className="text-2xl text-white">
-                  Rp {orders.filter(o => o.status === 'completed').reduce((sum, o) => sum + o.totalPrice, 0).toLocaleString()}
+                  {orders.filter(o => o.status === 'completed').length}
                 </p>
               </div>
             </div>
@@ -470,26 +469,6 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
             </div>
           </div>
         )}
-
-        {/* Promos Tab */}
-        {activeTab === 'promos' && (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-gray-800 mb-2">Kelola Promo</h2>
-                <p className="text-gray-600">Buat dan kelola promo untuk pengguna</p>
-              </div>
-              <button className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:shadow-lg transition-all">
-                <Plus className="w-5 h-5" />
-                <span>Tambah Promo</span>
-              </button>
-            </div>
-
-            <div className="bg-white rounded-2xl p-12 text-center shadow-lg border border-gray-100">
-              <p className="text-gray-600">Fitur promo akan segera hadir</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Add Shop Modal */}
@@ -657,7 +636,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   type="text"
                   value={shopForm.name}
                   onChange={(e) => setShopForm({ ...shopForm, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                 />
               </div>
 
@@ -667,7 +646,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   type="text"
                   value={shopForm.owner}
                   onChange={(e) => setShopForm({ ...shopForm, owner: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                 />
               </div>
 
@@ -677,7 +656,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   type="tel"
                   value={shopForm.phone}
                   onChange={(e) => setShopForm({ ...shopForm, phone: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                 />
               </div>
 
@@ -687,7 +666,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   value={shopForm.address}
                   onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                 />
               </div>
 
@@ -698,7 +677,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                     type="text"
                     value={shopForm.openHours}
                     onChange={(e) => setShopForm({ ...shopForm, openHours: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                   />
                 </div>
 
@@ -708,7 +687,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                     type="number"
                     value={shopForm.basePrice}
                     onChange={(e) => setShopForm({ ...shopForm, basePrice: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                   />
                 </div>
               </div>

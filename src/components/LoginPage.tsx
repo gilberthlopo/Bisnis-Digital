@@ -116,7 +116,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, onBack, selectedRole 
             {/* Title */}
             <div className="mb-8">
               <h1 className="text-4xl mb-2">WELCOME BACK!</h1>
-              {selectedRole !== 'shop' && (
+              {selectedRole === 'customer' && (
                 <p className="text-gray-400">
                   Don't have an account.{' '}
                   <button
@@ -190,12 +190,6 @@ export function LoginPage({ onLogin, onNavigateToRegister, onBack, selectedRole 
                     Remember me
                   </span>
                 </label>
-                <button
-                  type="button"
-                  className="text-gray-400 hover:text-gray-300 transition-colors"
-                >
-                  Forget password?
-                </button>
               </div>
 
               {/* Submit Button */}

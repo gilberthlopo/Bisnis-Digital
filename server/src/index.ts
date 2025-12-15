@@ -255,11 +255,12 @@ app.patch('/api/orders/:id/rating', async (req: Request, res: Response) => {
 app.get('/api/orders/:orderId/messages', async (req: Request, res: Response) => {
     try {
         const { orderId } = req.params;
-        // Cast to any because prisma generate might fail in limits env
+        console.log(`[GET Messages] Fetching for order: ${orderId}`);
         const messages = await (prisma as any).messages.findMany({
             where: { order_id: orderId },
             orderBy: { created_at: 'asc' }
         });
+        console.log(`[GET Messages] Found ${messages.length} messages`);
         res.json(messages);
     } catch (error) {
         handleError(res, error, "Fetch messages failed");
@@ -270,7 +271,7 @@ app.post('/api/orders/:orderId/messages', async (req: Request, res: Response) =>
     try {
         const { orderId } = req.params;
         const { text, sender } = req.body;
-        // Cast to any because prisma generate might fail in limits env
+        console.log(`[POST Message] Sending for order: ${orderId}, sender: ${sender}`);
         const newMessage = await (prisma as any).messages.create({
             data: {
                 id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -279,6 +280,7 @@ app.post('/api/orders/:orderId/messages', async (req: Request, res: Response) =>
                 sender: sender,
             }
         });
+        console.log(`[POST Message] Saved: ${newMessage.id}`);
         res.json(newMessage);
     } catch (error) {
         handleError(res, error, "Send message failed");
