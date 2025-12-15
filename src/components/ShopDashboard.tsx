@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../utils/supabaseClient';
 import { 
   Store, ShoppingBag, TrendingUp, Settings, 
   LogOut, Plus, Edit, Trash2, Check, X, 
@@ -18,6 +19,50 @@ type ShopDashboardProps = {
 };
 
 export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUpdateShops, onLogout }: ShopDashboardProps) {
+  useEffect(() => {
+    const myShop = shops.find((s) => s.userId === user.id);
+    if (!myShop) return;
+
+    const channel = supabase
+      .channel(`orders:shop=${myShop.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'orders', filter: `shop_id=eq.${myShop.id}` },
+        (payload: any) => {
+          const newOrder = payload.new;
+          const mapped = {
+            id: newOrder.id,
+            userId: newOrder.user_id,
+            shopId: newOrder.shop_id,
+            category: newOrder.category,
+            serviceDetail: newOrder.service_detail,
+            fileName: newOrder.file_name ?? undefined,
+            pickupDate: newOrder.pickup_date,
+            pickupTime: newOrder.pickup_time,
+            paymentMethod: newOrder.payment_method,
+            totalPrice: Number(newOrder.total_price),
+            status: newOrder.status,
+            rejectionReason: newOrder.rejection_reason ?? undefined,
+            createdAt: newOrder.created_at,
+          } as Order;
+
+          // avoid duplicates
+          if (!orders.find((o) => o.id === mapped.id)) {
+            onUpdateOrders([...orders, mapped]);
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      try {
+        void supabase.removeChannel(channel);
+      } catch (e) {
+        // ignore
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, shops, orders]);
   const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'settings'>('overview');
   const [orderFilter, setOrderFilter] = useState<'all' | 'pending' | 'processing' | 'ready' | 'completed'>('all');
   const [showOrderDetailModal, setShowOrderDetailModal] = useState(false);
@@ -264,7 +309,11 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
               {filteredOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="bg-gray-900/50 backdrop-blur-md rounded-2xl border border-gray-800 shadow-xl overflow-hidden"
+                  onClick={() => {
+                    setSelectedOrder(order);
+                    setShowOrderDetailModal(true);
+                  }}
+                  className="bg-gray-900/50 backdrop-blur-md rounded-2xl border border-gray-800 shadow-xl overflow-hidden cursor-pointer"
                 >
                   <div className="p-6">
                     <div className="flex items-start justify-between mb-4">
@@ -313,7 +362,7 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
 
                     {order.status === 'processing' && (
                       <button
-                        onClick={() => handleUpdateStatus(order.id, 'ready')}
+                        onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order.id, 'ready'); }}
                         className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-lg transition-all"
                       >
                         Tandai Siap Diambil
@@ -322,7 +371,7 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
 
                     {order.status === 'ready' && (
                       <button
-                        onClick={() => handleUpdateStatus(order.id, 'completed')}
+                        onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order.id, 'completed'); }}
                         className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-lg transition-all"
                       >
                         Selesaikan Pesanan
@@ -395,6 +444,27 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
               <div className="p-4 bg-gray-800/50 rounded-xl">
                 <p className="text-gray-400 mb-1">Pelanggan</p>
                 <p className="text-white">{getCustomerName(selectedOrder.userId)}</p>
+              </div>
+
+              <div className="p-4 bg-gray-800/50 rounded-xl">
+                <p className="text-gray-400 mb-1">Detail Layanan</p>
+                <div className="text-white text-sm space-y-1">
+                  {selectedOrder.fileName && <div>File: {selectedOrder.fileName}</div>}
+                  {selectedOrder.serviceDetail?.pages !== undefined && <div>Halaman: {selectedOrder.serviceDetail.pages}</div>}
+                  {selectedOrder.serviceDetail?.copies !== undefined && <div>Rangkap: {selectedOrder.serviceDetail.copies}</div>}
+                  {selectedOrder.serviceDetail?.colorType && <div>Jenis Cetakan: {selectedOrder.serviceDetail.colorType === 'bw' ? 'Hitam Putih' : 'Berwarna'}</div>}
+                  {selectedOrder.serviceDetail?.bindingType && selectedOrder.serviceDetail.bindingType !== 'none' && (
+                    <div>Jilid: {selectedOrder.serviceDetail.bindingType === 'regular' ? 'Jilid Biasa' : 'Jilid Buku'}</div>
+                  )}
+                  {selectedOrder.serviceDetail?.deliveryPackage && <div>Paket: {selectedOrder.serviceDetail.deliveryPackage}</div>}
+                  {selectedOrder.serviceDetail?.notes && <div>Catatan: {selectedOrder.serviceDetail.notes}</div>}
+                  {selectedOrder.serviceDetail?.bannerLength && selectedOrder.serviceDetail?.bannerWidth && (
+                    <div>Banner: {selectedOrder.serviceDetail.bannerLength}m × {selectedOrder.serviceDetail.bannerWidth}m</div>
+                  )}
+                  {selectedOrder.serviceDetail?.customPhotoWidth && selectedOrder.serviceDetail?.customPhotoHeight && (
+                    <div>Ukuran Foto: {selectedOrder.serviceDetail.customPhotoWidth}cm × {selectedOrder.serviceDetail.customPhotoHeight}cm</div>
+                  )}
+                </div>
               </div>
 
               <div className="p-4 bg-gray-800/50 rounded-xl">

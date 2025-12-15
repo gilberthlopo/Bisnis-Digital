@@ -109,15 +109,17 @@ export function LoginPage({ onLogin, onNavigateToRegister, onBack, selectedRole 
             {/* Title */}
             <div className="mb-8">
               <h1 className="text-4xl mb-2">WELCOME BACK!</h1>
-              <p className="text-gray-400">
-                Don't have an account.{' '}
-                <button
-                  onClick={onNavigateToRegister}
-                  className={`text-transparent bg-clip-text bg-gradient-to-r ${roleInfo.color} hover:underline`}
-                >
-                  Sign up
-                </button>
-              </p>
+              {selectedRole !== 'shop' && (
+                <p className="text-gray-400">
+                  Don't have an account.{' '}
+                  <button
+                    onClick={onNavigateToRegister}
+                    className={`text-transparent bg-clip-text bg-gradient-to-r ${roleInfo.color} hover:underline`}
+                  >
+                    Sign up
+                  </button>
+                </p>
+              )}
             </div>
 
             {/* Error Message */}

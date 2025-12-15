@@ -44,11 +44,13 @@
             "react-resizable-panels": "^2.1.7",
             "recharts": "^2.15.2",
             "sonner": "^2.0.3",
+            "@supabase/supabase-js": "^2.33.0",
             "tailwind-merge": "*",
             "vaul": "^1.1.2"
       },
       "devDependencies": {
             "@types/node": "^20.10.0",
+            "pg": "^8.11.0",
             "@types/react": "^19.2.7",
             "@types/react-dom": "^19.2.3",
             "@vitejs/plugin-react-swc": "^3.10.2",
@@ -58,5 +60,8 @@
       "scripts": {
             "dev": "vite",
             "build": "vite build"
+            ,
+            "db:apply": "node scripts/run_migrations.cjs",
+            "supabase:deploy:functions": "supabase functions deploy create_order && supabase functions deploy update_order_status"
       }
 }

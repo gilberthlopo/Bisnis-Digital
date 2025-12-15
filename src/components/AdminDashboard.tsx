@@ -398,7 +398,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                     const userOrders = orders.filter(o => o.userId === u.id);
                     return (
                       <tr key={u.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="p-4">{u.name}</td>
+                        <td className="p-4 text-gray-800">{u.name}</td>
                         <td className="p-4 text-gray-600">{u.email}</td>
                         <td className="p-4">
                           <span className={`px-3 py-1 rounded-lg text-sm ${
@@ -525,7 +525,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   type="text"
                   value={shopForm.name}
                   onChange={(e) => setShopForm({ ...shopForm, name: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                   placeholder="Contoh: Print Center A"
                 />
               </div>
@@ -536,7 +536,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   type="text"
                   value={shopForm.owner}
                   onChange={(e) => setShopForm({ ...shopForm, owner: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                   placeholder="Nama pemilik toko"
                 />
               </div>
@@ -547,7 +547,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   type="email"
                   value={shopForm.email}
                   onChange={(e) => setShopForm({ ...shopForm, email: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                   placeholder="email@toko.com"
                 />
                 <p className="text-gray-500 text-sm mt-1">Email ini akan digunakan pemilik toko untuk login</p>
@@ -559,7 +559,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   type="password"
                   value={shopForm.password}
                   onChange={(e) => setShopForm({ ...shopForm, password: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                   placeholder="Password untuk login toko"
                 />
               </div>
@@ -570,7 +570,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   type="tel"
                   value={shopForm.phone}
                   onChange={(e) => setShopForm({ ...shopForm, phone: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                   placeholder="08xxxxxxxxxx"
                 />
               </div>
@@ -581,7 +581,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                   value={shopForm.address}
                   onChange={(e) => setShopForm({ ...shopForm, address: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                   placeholder="Alamat lengkap toko"
                 />
               </div>
@@ -593,7 +593,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                     type="text"
                     value={shopForm.openHours}
                     onChange={(e) => setShopForm({ ...shopForm, openHours: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                     placeholder="08:00 - 20:00"
                   />
                 </div>
@@ -604,7 +604,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                     type="number"
                     value={shopForm.basePrice}
                     onChange={(e) => setShopForm({ ...shopForm, basePrice: parseInt(e.target.value) })}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500"
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
                     placeholder="500"
                   />
                 </div>

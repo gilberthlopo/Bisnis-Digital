@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase, mapOrderFromDb, mapOrderToDb } from "./utils/supabaseClient";
 import {
   RoleSelectionPage,
   type Role,
@@ -326,6 +327,26 @@ export default function App() {
   // Chat Messages State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
+  // Load existing orders from Supabase on app start (if configured)
+  useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*");
+        if (!error && data) {
+          setOrders(data.map((r: any) => mapOrderFromDb(r) as Order));
+        }
+      } catch (e) {
+        // ignore - fallback is local state
+        console.error("Failed to load orders from Supabase:", e);
+      }
+    };
+
+    void loadOrders();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Categories - Can be managed by admin
   const [categories, setCategories] = useState<Category[]>([
     { id: "print", name: "Print & Fotocopy", icon: "printer", createdBy: "system" },
@@ -423,7 +444,7 @@ export default function App() {
     setCurrentPage("payment");
   };
 
-  const handlePaymentSubmit = (
+  const handlePaymentSubmit = async (
     paymentMethod: string,
     totalPrice: number,
   ) => {
@@ -450,24 +471,100 @@ export default function App() {
       createdAt: new Date().toISOString(),
     };
 
-    setCurrentOrder(newOrder);
-    setOrders([...orders, newOrder]);
+    try {
+      // Prefer Edge Function for secure insert
+      const res: any = await supabase.functions.invoke("create_order", {
+        body: JSON.stringify(mapOrderToDb(newOrder)),
+      });
+
+      let json: any = null;
+      try { json = await res.json(); } catch (_) { json = res; }
+
+      if (!res || (res.status && res.status >= 400)) {
+        console.warn('Edge function failed, falling back to direct insert (anon key)');
+        const { data: d2, error: e2 } = await supabase.from('orders').insert([mapOrderToDb(newOrder)]).select().single();
+        if (e2 || !d2) {
+          console.error('Direct insert failed:', e2);
+          setCurrentOrder(newOrder);
+          setOrders([...orders, newOrder]);
+        } else {
+          const mapped = mapOrderFromDb(d2);
+          setCurrentOrder(mapped as Order);
+          setOrders([...orders, mapped as Order]);
+        }
+      } else {
+        const mapped = mapOrderFromDb(json);
+        setCurrentOrder(mapped as Order);
+        setOrders([...orders, mapped as Order]);
+      }
+    } catch (err) {
+      console.warn('Create order (functions) failed, trying direct insert', (err instanceof Error ? err.message : String(err)));
+      try {
+        const { data: d2, error: e2 } = await supabase.from('orders').insert([mapOrderToDb(newOrder)]).select().single();
+        if (e2 || !d2) {
+          console.error('Direct insert failed:', e2);
+          setCurrentOrder(newOrder);
+          setOrders([...orders, newOrder]);
+        } else {
+          const mapped = mapOrderFromDb(d2);
+          setCurrentOrder(mapped as Order);
+          setOrders([...orders, mapped as Order]);
+        }
+      } catch (err2) {
+        console.error('Direct insert attempt failed:', (err2 instanceof Error ? err2.message : String(err2)));
+        setCurrentOrder(newOrder);
+        setOrders([...orders, newOrder]);
+      }
+    }
+
     setCurrentPage("orderTracking");
   };
 
-  const handleOrderStatusUpdate = (
+  const handleOrderStatusUpdate = async (
     orderId: string,
     newStatus: Order["status"],
   ) => {
-    setOrders(
-      orders.map((order) =>
-        order.id === orderId
-          ? { ...order, status: newStatus }
-          : order,
-      ),
-    );
-    if (currentOrder && currentOrder.id === orderId) {
-      setCurrentOrder({ ...currentOrder, status: newStatus });
+    try {
+      const res: any = await supabase.functions.invoke("update_order_status", {
+        body: JSON.stringify({ id: orderId, status: newStatus }),
+      });
+
+      let json: any = null;
+      try { json = await res.json(); } catch (_) { json = res; }
+
+      if (!res || (res.status && res.status >= 400)) {
+        console.warn('Edge function update failed, falling back to direct update');
+        const { data: d2, error: e2 } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId).select().single();
+        if (e2 || !d2) {
+          console.error('Direct update failed:', e2);
+          setOrders(orders.map((order) => order.id === orderId ? { ...order, status: newStatus } : order));
+          if (currentOrder && currentOrder.id === orderId) setCurrentOrder({ ...currentOrder, status: newStatus });
+        } else {
+          const mapped = mapOrderFromDb(d2);
+          setOrders(orders.map((order) => order.id === orderId ? (mapped as Order) : order));
+          if (currentOrder && currentOrder.id === orderId) setCurrentOrder(mapped as Order);
+        }
+      } else {
+        const mapped = mapOrderFromDb(json);
+        setOrders(orders.map((order) => order.id === orderId ? (mapped as Order) : order));
+        if (currentOrder && currentOrder.id === orderId) setCurrentOrder(mapped as Order);
+      }
+    } catch (err) {
+      console.warn('Update order function failed, trying direct update', (err instanceof Error ? err.message : String(err)));
+      try {
+        const { data: d2, error: e2 } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId).select().single();
+        if (e2 || !d2) {
+          console.error('Direct update failed:', e2);
+          setOrders(orders.map((order) => order.id === orderId ? { ...order, status: newStatus } : order));
+          if (currentOrder && currentOrder.id === orderId) setCurrentOrder({ ...currentOrder, status: newStatus });
+        } else {
+          const mapped = mapOrderFromDb(d2);
+          setOrders(orders.map((order) => order.id === orderId ? (mapped as Order) : order));
+          if (currentOrder && currentOrder.id === orderId) setCurrentOrder(mapped as Order);
+        }
+      } catch (err2) {
+        console.error('Direct update attempt failed:', (err2 instanceof Error ? err2.message : String(err2)));
+      }
     }
   };
 
