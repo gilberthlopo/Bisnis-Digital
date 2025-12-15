@@ -498,7 +498,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                     <th className="text-left p-4 text-gray-700">Email</th>
                     <th className="text-left p-4 text-gray-700">Role</th>
                     <th className="text-left p-4 text-gray-700">Pesanan</th>
-                    <th className="text-left p-4 text-gray-700">Status</th>
+                    <th className="text-left p-4 text-gray-700">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -522,20 +522,16 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                         </td>
                         <td className="p-4 text-gray-600">{userOrders.length} pesanan</td>
                         <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <span className={`px-3 py-1 rounded-lg text-sm ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{u.isActive ? 'Aktif' : 'Nonaktif'}</span>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => handleToggleUserStatus(u.id)}
-                                className={`p-2 rounded-xl transition ${u.isActive ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}
-                                title={u.isActive ? 'Nonaktifkan pengguna' : 'Aktifkan pengguna'}
-                              >
-                                {u.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
-                              </button>
-                            </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggleUserStatus(u.id)}
+                              className={`p-2 rounded-xl transition ${u.isActive ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}
+                              title={u.isActive ? 'Nonaktifkan pengguna' : 'Aktifkan pengguna'}
+                            >
+                              {u.isActive ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                            </button>
                           </div>
                         </td>
-                        {/* no delete action per policy, use activate/deactivate only */}
                       </tr>
                     );
                   })}
