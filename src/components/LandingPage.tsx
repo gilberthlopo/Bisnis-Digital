@@ -21,11 +21,14 @@ import {
   Youtube,
 } from "lucide-react";
 
+import type { Shop } from "../App";
+
 interface LandingPageProps {
   onNavigateToLogin: () => void;
+  shops: Shop[];
 }
 
-export function LandingPage({ onNavigateToLogin }: LandingPageProps) {
+export function LandingPage({ onNavigateToLogin, shops }: LandingPageProps) {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -89,7 +92,7 @@ export function LandingPage({ onNavigateToLogin }: LandingPageProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 via-transparent to-purple-600/20" />
         <div className="absolute top-20 right-10 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-10 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
-        
+
         <div className="container mx-auto relative z-10">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
@@ -103,8 +106,8 @@ export function LandingPage({ onNavigateToLogin }: LandingPageProps) {
                 </span>
               </h1>
               <p className="text-gray-400 text-lg mb-8 leading-relaxed">
-                Platform percetakan dan fotocopy terlengkap di kota Anda. 
-                Cetak dokumen, pas foto, banner, hingga baliho dengan mudah dan cepat. 
+                Platform percetakan dan fotocopy terlengkap di kota Anda.
+                Cetak dokumen, pas foto, banner, hingga baliho dengan mudah dan cepat.
                 Tersedia berbagai pilihan toko terpercaya dengan harga terbaik.
               </p>
               <div className="flex flex-wrap gap-4 mb-8">
@@ -305,30 +308,33 @@ export function LandingPage({ onNavigateToLogin }: LandingPageProps) {
             </p>
           </div>
           <div className="grid md:grid-cols-4 gap-6">
-            {[
-              "SKYCOM",
-              "Stevano Printing",
-              "Istana Fotocopy",
-              "Bintang Jasa",
-              "Sitarda Center",
-              "Anugerah FC",
-              "Express Print",
-              "Digital Copy",
-            ].map((partner, index) => (
-              <div
-                key={index}
-                className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl border border-gray-800 hover:border-blue-500/50 transition-all flex items-center justify-center group"
-              >
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-700 rounded-xl flex items-center justify-center mb-3 mx-auto group-hover:from-blue-600 group-hover:to-purple-600 transition-all">
-                    <Printer className="w-8 h-8 text-gray-400 group-hover:text-white transition-colors" />
-                  </div>
-                  <div className="text-sm text-gray-300 group-hover:text-white transition-colors">
-                    {partner}
+            {shops.length > 0 ? (
+              shops.slice(0, 8).map((shop, index) => (
+                <div
+                  key={shop.id}
+                  className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl border border-gray-800 hover:border-blue-500/50 transition-all flex items-center justify-center group"
+                >
+                  <div className="text-center">
+                    <div className="w-16 h-16 bg-gradient-to-br from-gray-800 to-gray-700 rounded-xl flex items-center justify-center mb-3 mx-auto group-hover:from-blue-600 group-hover:to-purple-600 transition-all">
+                      <Printer className="w-8 h-8 text-gray-400 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-sm text-gray-300 group-hover:text-white transition-colors font-medium">
+                      {shop.name}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      ⭐ {shop.rating.toFixed(1)}
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12 bg-gray-900/30 rounded-2xl border border-gray-800 border-dashed">
+                <p className="text-gray-400 mb-2">Belum ada mitra toko yang bergabung.</p>
+                <Button onClick={onNavigateToLogin} variant="outline" className="border-blue-500 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300">
+                  Daftarkan Toko Anda
+                </Button>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </section>
@@ -474,22 +480,22 @@ export function LandingPage({ onNavigateToLogin }: LandingPageProps) {
               <h4 className="mb-4">Layanan</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#services" className="hover:text-blue-400 transition-colors">
                     Print & Fotocopy
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#services" className="hover:text-blue-400 transition-colors">
                     Cetak Pas Foto
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#services" className="hover:text-blue-400 transition-colors">
                     Banner & Baliho
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#services" className="hover:text-blue-400 transition-colors">
                     Penjilidan
                   </a>
                 </li>
@@ -499,22 +505,22 @@ export function LandingPage({ onNavigateToLogin }: LandingPageProps) {
               <h4 className="mb-4">Perusahaan</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#" className="hover:text-blue-400 transition-colors" onClick={(e) => { e.preventDefault(); alert("Halaman Tentang Kami akan segera hadir!"); }}>
                     Tentang Kami
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#partners" className="hover:text-blue-400 transition-colors">
                     Mitra Toko
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#" className="hover:text-blue-400 transition-colors" onClick={(e) => { e.preventDefault(); alert("Halaman Karir akan segera hadir!"); }}>
                     Karir
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#" className="hover:text-blue-400 transition-colors" onClick={(e) => { e.preventDefault(); alert("Halaman Blog akan segera hadir!"); }}>
                     Blog
                   </a>
                 </li>
@@ -524,22 +530,22 @@ export function LandingPage({ onNavigateToLogin }: LandingPageProps) {
               <h4 className="mb-4">Bantuan</h4>
               <ul className="space-y-2 text-sm text-gray-400">
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#" className="hover:text-blue-400 transition-colors" onClick={(e) => { e.preventDefault(); alert("Halaman FAQ akan segera hadir!"); }}>
                     FAQ
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#" className="hover:text-blue-400 transition-colors" onClick={(e) => { e.preventDefault(); alert("Halaman Kebijakan Privasi akan segera hadir!"); }}>
                     Kebijakan Privasi
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#" className="hover:text-blue-400 transition-colors" onClick={(e) => { e.preventDefault(); alert("Halaman Syarat & Ketentuan akan segera hadir!"); }}>
                     Syarat & Ketentuan
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="hover:text-blue-400 transition-colors">
+                  <a href="#contact" className="hover:text-blue-400 transition-colors">
                     Hubungi Kami
                   </a>
                 </li>

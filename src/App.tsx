@@ -360,20 +360,31 @@ export default function App() {
     setCurrentPage("rating");
   };
 
-  const handleRatingSubmit = (
+  const handleRatingSubmit = async (
     rating: number,
     review: string,
   ) => {
-    // In production, this would update the shop's rating
-    console.log("Rating submitted:", rating, review);
-    setCurrentPage("category");
-    // Reset for new order
-    setSelectedCategory(null);
-    setSelectedShop(null);
-    setServiceDetail({});
-    setUploadedFile(null);
-    setScheduleData(null);
-    setCurrentOrder(null);
+    if (!currentOrder) return;
+
+    try {
+      const updatedOrder = await api.submitRating(currentOrder.id, rating, review);
+
+      // Update local state
+      setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+      alert("Terima kasih atas penilaian Anda!");
+
+      setCurrentPage("category");
+      // Reset for new order
+      setSelectedCategory(null);
+      setSelectedShop(null);
+      setServiceDetail({});
+      setUploadedFile(null);
+      setScheduleData(null);
+      setCurrentOrder(null);
+    } catch (e: any) {
+      console.error("Failed to submit rating", e);
+      alert("Gagal mengirim rating");
+    }
   };
 
   const handleLogout = () => {
@@ -499,6 +510,8 @@ export default function App() {
         <CategoryPage
           user={user}
           orders={orders.filter((o) => o.userId === user.id)}
+          categories={categories}
+          shops={shops}
           onCategorySelect={handleCategorySelect}
           onViewOrders={() => setCurrentPage("orderTracking")}
           onLogout={handleLogout}
@@ -613,7 +626,7 @@ export default function App() {
       )}
 
       {currentPage === "landingPage" && (
-        <LandingPage onNavigateToLogin={() => setCurrentPage("roleSelection")} />
+        <LandingPage onNavigateToLogin={() => setCurrentPage("roleSelection")} shops={shops} />
       )}
     </div>
   );

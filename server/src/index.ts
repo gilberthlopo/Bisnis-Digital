@@ -196,6 +196,7 @@ app.post('/api/orders', async (req: Request, res: Response) => {
     }
 });
 
+
 app.patch('/api/orders/:id/status', async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -207,6 +208,80 @@ app.patch('/api/orders/:id/status', async (req: Request, res: Response) => {
         res.json(updated);
     } catch (error) {
         handleError(res, error, "Update order status failed");
+    }
+});
+
+app.patch('/api/orders/:id/rating', async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { rating, review } = req.body;
+
+        // 1. Update Order
+        const updatedOrder = await prisma.order.update({
+            where: { id },
+            data: { rating, review }
+        });
+
+        // 2. Recalculate Shop Rating
+        if (updatedOrder.shopId) {
+            const shopOrders = await prisma.order.findMany({
+                where: {
+                    shopId: updatedOrder.shopId,
+                    rating: { not: null }
+                }
+            });
+
+            const totalRating = shopOrders.reduce((acc, curr) => acc + (curr.rating || 0), 0);
+            const count = shopOrders.length;
+            const average = count > 0 ? totalRating / count : 0;
+
+            await prisma.shop.update({
+                where: { id: updatedOrder.shopId },
+                data: {
+                    rating: average,
+                    reviews: count
+                }
+            });
+        }
+
+        res.json(updatedOrder);
+    } catch (error) {
+        handleError(res, error, "Update rating failed");
+    }
+});
+
+// --- CHAT ROUTES ---
+
+app.get('/api/orders/:orderId/messages', async (req: Request, res: Response) => {
+    try {
+        const { orderId } = req.params;
+        // Cast to any because prisma generate might fail in limits env
+        const messages = await (prisma as any).messages.findMany({
+            where: { order_id: orderId },
+            orderBy: { created_at: 'asc' }
+        });
+        res.json(messages);
+    } catch (error) {
+        handleError(res, error, "Fetch messages failed");
+    }
+});
+
+app.post('/api/orders/:orderId/messages', async (req: Request, res: Response) => {
+    try {
+        const { orderId } = req.params;
+        const { text, sender } = req.body;
+        // Cast to any because prisma generate might fail in limits env
+        const newMessage = await (prisma as any).messages.create({
+            data: {
+                id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                order_id: orderId,
+                content: text,
+                sender: sender,
+            }
+        });
+        res.json(newMessage);
+    } catch (error) {
+        handleError(res, error, "Send message failed");
     }
 });
 

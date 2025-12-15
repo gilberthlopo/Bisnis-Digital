@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Package, Clock, CheckCircle, MessageCircle, MapPin, Calendar, Filter, Star, Info, Store, XCircle } from 'lucide-react';
 import type { Order, Shop } from '../App';
-import { ChatModal } from './ChatModal';
+import { api } from '../services/api';
+import { ChatModal, type ChatMessage } from './ChatModal';
 
 type OrderTrackingPageProps = {
   orders: Order[];
@@ -12,22 +13,54 @@ type OrderTrackingPageProps = {
   onBack: () => void;
 };
 
-export function OrderTrackingPage({ 
+export function OrderTrackingPage({
   orders,
   shops,
   currentOrder,
-  onStatusUpdate, 
+  onStatusUpdate,
   onNavigateToRating,
-  onBack 
+  onBack
 }: OrderTrackingPageProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(currentOrder);
   const [showChat, setShowChat] = useState(false);
   const [filterStatus, setFilterStatus] = useState<Order['status'] | 'all'>('all');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Load messages when chat is opened
+  useEffect(() => {
+    if (showChat && selectedOrder) {
+      loadMessages(selectedOrder.id);
+
+      // Poll for new messages every 5 seconds (Simple realtime fallback)
+      const interval = setInterval(() => loadMessages(selectedOrder.id), 5000);
+      return () => clearInterval(interval);
+    }
+  }, [showChat, selectedOrder]);
+
+  const loadMessages = async (orderId: string) => {
+    try {
+      const msgs = await api.getMessages(orderId);
+      setChatMessages(msgs);
+    } catch (e) {
+      console.error("Failed to load messages", e);
+    }
+  };
+
+  const handleSendMessage = async (orderId: string, text: string, sender: 'customer' | 'shop') => {
+    try {
+      const newMsg = await api.sendMessage(orderId, text, sender);
+      setChatMessages(prev => [...prev, newMsg]);
+    } catch (e) {
+      console.error("Failed to send message", e);
+      alert("Gagal mengirim pesan");
+    }
+  };
 
   const getShopName = (shopId: string) => {
     const shop = shops.find(s => s.id === shopId);
     return shop ? shop.name : 'Toko Tidak Diketahui';
   };
+
 
   const getStatusInfo = (status: Order['status']) => {
     switch (status) {
@@ -69,8 +102,8 @@ export function OrderTrackingPage({
     }
   };
 
-  const filteredOrders = filterStatus === 'all' 
-    ? orders 
+  const filteredOrders = filterStatus === 'all'
+    ? orders
     : orders.filter(order => order.status === filterStatus);
 
   const statusFilters = [
@@ -120,19 +153,17 @@ export function OrderTrackingPage({
               <button
                 key={filter.value}
                 onClick={() => setFilterStatus(filter.value as any)}
-                className={`px-5 py-3 rounded-xl transition-all border-2 flex items-center gap-2 ${
-                  filterStatus === filter.value
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg'
-                    : 'bg-gray-800/50 text-gray-300 border-gray-700 hover:border-gray-600'
-                }`}
+                className={`px-5 py-3 rounded-xl transition-all border-2 flex items-center gap-2 ${filterStatus === filter.value
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white border-transparent shadow-lg'
+                  : 'bg-gray-800/50 text-gray-300 border-gray-700 hover:border-gray-600'
+                  }`}
               >
                 {filter.label}
                 {filter.count > 0 && (
-                  <span className={`px-2 py-0.5 rounded-full text-xs ${
-                    filterStatus === filter.value 
-                      ? 'bg-white/20' 
-                      : 'bg-gray-700'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${filterStatus === filter.value
+                    ? 'bg-white/20'
+                    : 'bg-gray-700'
+                    }`}>
                     {filter.count}
                   </span>
                 )}
@@ -150,8 +181,8 @@ export function OrderTrackingPage({
               </div>
               <p className="text-white text-lg mb-2">Tidak ada pesanan</p>
               <p className="text-gray-400">
-                {filterStatus === 'all' 
-                  ? 'Belum ada pesanan yang dibuat' 
+                {filterStatus === 'all'
+                  ? 'Belum ada pesanan yang dibuat'
                   : `Tidak ada pesanan dengan status "${statusFilters.find(f => f.value === filterStatus)?.label}"`}
               </p>
             </div>
@@ -271,21 +302,20 @@ export function OrderTrackingPage({
                       <div className="relative">
                         {/* Timeline Line */}
                         <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-700" />
-                        
+
                         {/* Timeline Items */}
                         <div className="space-y-4">
                           {['pending', 'processing', 'ready', 'completed'].map((status, index) => {
                             const isActive = ['pending', 'processing', 'ready', 'completed'].indexOf(order.status) >= index;
                             const isCurrent = order.status === status;
                             const isRejected = order.status === 'rejected';
-                            
+
                             return (
                               <div key={status} className="relative flex items-center gap-4">
-                                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                                  isActive && !isRejected
-                                    ? 'bg-blue-500 border-blue-500'
-                                    : 'bg-gray-800 border-gray-700'
-                                }`}>
+                                <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 ${isActive && !isRejected
+                                  ? 'bg-blue-500 border-blue-500'
+                                  : 'bg-gray-800 border-gray-700'
+                                  }`}>
                                   {isActive && !isRejected ? (
                                     <CheckCircle className="w-5 h-5 text-white" />
                                   ) : (
@@ -308,7 +338,7 @@ export function OrderTrackingPage({
                               </div>
                             );
                           })}
-                          
+
                           {/* Rejected Status */}
                           {order.status === 'rejected' && (
                             <div className="relative flex items-center gap-4">
@@ -335,7 +365,7 @@ export function OrderTrackingPage({
                       >
                         Lihat Detail
                       </button>
-                      
+
                       <button
                         onClick={() => setShowChat(true)}
                         className="px-5 py-3 bg-gray-800 text-white rounded-xl hover:bg-gray-700 transition-all border border-gray-700 flex items-center gap-2"
@@ -368,10 +398,89 @@ export function OrderTrackingPage({
           orderId={selectedOrder.id}
           shopName={getShopName(selectedOrder.shopId)}
           currentUserRole={'customer'}
-          messages={[]}
-          onSendMessage={() => {}}
+          messages={chatMessages}
+          onSendMessage={handleSendMessage}
           onClose={() => setShowChat(false)}
         />
+      )}
+      {/* Detail Modal */}
+      {selectedOrder && !showChat && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-6" onClick={() => setSelectedOrder(null)}>
+          <div className="bg-gray-900 rounded-2xl border border-gray-800 max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="p-6 border-b border-gray-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-white text-xl">Detail Pesanan #{selectedOrder.id}</h3>
+                <button
+                  onClick={() => setSelectedOrder(null)}
+                  className="p-2 hover:bg-gray-800 rounded-lg transition-all"
+                >
+                  <XCircle className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Shop Info */}
+              <div className="p-4 bg-gray-800/50 rounded-xl">
+                <p className="text-gray-400 mb-1">Toko</p>
+                <p className="text-white text-lg">{getShopName(selectedOrder.shopId)}</p>
+              </div>
+
+              {/* Service Details */}
+              <div className="p-4 bg-gray-800/50 rounded-xl">
+                <p className="text-gray-400 mb-2">Detail Layanan</p>
+                <div className="space-y-2 text-white">
+                  {selectedOrder.fileName && (
+                    <div className="flex justify-between border-b border-gray-700 pb-2">
+                      <span className="text-gray-400">File</span>
+                      <span>{selectedOrder.fileName}</span>
+                    </div>
+                  )}
+                  {selectedOrder.serviceDetail?.pages && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Jumlah Halaman</span>
+                      <span>{selectedOrder.serviceDetail.pages}</span>
+                    </div>
+                  )}
+                  {selectedOrder.serviceDetail?.copies && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Rangkap</span>
+                      <span>{selectedOrder.serviceDetail.copies}x</span>
+                    </div>
+                  )}
+                  {selectedOrder.serviceDetail?.colorType && (
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Warna</span>
+                      <span>{selectedOrder.serviceDetail.colorType === 'color' ? 'Berwarna' : 'Hitam Putih'}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Payment & Schedule */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-800/50 rounded-xl">
+                  <p className="text-gray-400 mb-1">Total Harga</p>
+                  <p className="text-white text-xl">Rp {selectedOrder.totalPrice.toLocaleString()}</p>
+                </div>
+                <div className="p-4 bg-gray-800/50 rounded-xl">
+                  <p className="text-gray-400 mb-1">Ambil Pada</p>
+                  <p className="text-white">
+                    {new Date(selectedOrder.pickupDate).toLocaleDateString()} • {selectedOrder.pickupTime}
+                  </p>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <button
+                onClick={() => setSelectedOrder(null)}
+                className="w-full py-4 bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition-all"
+              >
+                Tutup Detail
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

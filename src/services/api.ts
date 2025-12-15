@@ -113,5 +113,48 @@ export const api = {
         if (!res.ok) throw new Error('Failed to update status');
         const data = await res.json();
         return { ...data, totalPrice: Number(data.totalPrice) };
+    },
+
+    submitRating: async (orderId: string, rating: number, review: string): Promise<Order> => {
+        const res = await fetch(`${API_URL}/orders/${orderId}/rating`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rating, review }),
+        });
+        if (!res.ok) throw new Error('Failed to submit rating');
+        const data = await res.json();
+        return { ...data, totalPrice: Number(data.totalPrice) };
+    },
+
+    // Chat
+    getMessages: async (orderId: string): Promise<any[]> => {
+        const res = await fetch(`${API_URL}/orders/${orderId}/messages`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        // Map backend fields to frontend
+        return data.map((msg: any) => ({
+            id: msg.id,
+            orderId: msg.order_id,
+            sender: msg.sender,
+            text: msg.content,
+            timestamp: msg.created_at
+        }));
+    },
+
+    sendMessage: async (orderId: string, text: string, sender: string): Promise<any> => {
+        const res = await fetch(`${API_URL}/orders/${orderId}/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text, sender }),
+        });
+        if (!res.ok) throw new Error('Failed to send message');
+        const msg = await res.json();
+        return {
+            id: msg.id,
+            orderId: msg.order_id,
+            sender: msg.sender,
+            text: msg.content,
+            timestamp: msg.created_at
+        };
     }
 };
