@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { api } from "./services/api";
 import { supabase, mapOrderFromDb, mapOrderToDb } from "./utils/supabaseClient";
 import {
   RoleSelectionPage,
@@ -100,11 +101,11 @@ export type Order = {
   paymentMethod: string;
   totalPrice: number;
   status:
-    | "pending"
-    | "processing"
-    | "ready"
-    | "completed"
-    | "rejected";
+  | "pending"
+  | "processing"
+  | "ready"
+  | "completed"
+  | "rejected";
   rejectionReason?: string;
   rating?: number;
   review?: string;
@@ -151,201 +152,39 @@ export default function App() {
   const [currentOrder, setCurrentOrder] =
     useState<Order | null>(null);
 
-  // CENTRALIZED STATE - All data stored here and shared across components
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "admin-001",
-      name: "Super Admin",
-      email: "admin@beresinaja.com",
-      password: "admin123",
-      role: "admin",
-      isActive: true,
-    },
-    // Customer User
-    {
-      id: "customer-001",
-      name: "Gilberth Lopo",
-      email: "gil@gmail.com",
-      password: "gil123",
-      role: "customer",
-      phone: "081234567899",
-      nim: "C1234567890",
-      isActive: true,
-    },
-    // Shop Users
-    {
-      id: "shop-user-1",
-      name: "Sky Thedens",
-      email: "tes@skycom.com",
-      password: "skycom123",
-      role: "shop",
-      phone: "081234567890",
-      isActive: true,
-    },
-    {
-      id: "shop-user-2",
-      name: "Stevano",
-      email: "tes@stevano.com",
-      password: "stevano123",
-      role: "shop",
-      phone: "081234567891",
-      isActive: true,
-    },
-    {
-      id: "shop-user-3",
-      name: "Istana FC",
-      email: "tes@istana.com",
-      password: "istana123",
-      role: "shop",
-      phone: "081234567892",
-      isActive: true,
-    },
-    {
-      id: "shop-user-4",
-      name: "Bintang",
-      email: "tes@bintang.com",
-      password: "bintang123",
-      role: "shop",
-      phone: "081234567893",
-      isActive: true,
-    },
-    {
-      id: "shop-user-5",
-      name: "Sitarda",
-      email: "tes@sitarda.com",
-      password: "sitarda123",
-      role: "shop",
-      phone: "081234567894",
-      isActive: true,
-    },
-    {
-      id: "shop-user-6",
-      name: "Anugerah",
-      email: "tes@anugerah.com",
-      password: "anugerah123",
-      role: "shop",
-      phone: "081234567895",
-      isActive: true,
-    },
-  ]);
-
-  const [shops, setShops] = useState<Shop[]>([
-    {
-      id: "shop-1",
-      name: "SKYCOM",
-      rating: 4.8,
-      reviews: 234,
-      basePrice: 500,
-      openHours: "08:00 - 20:00",
-      estimatedTime: "1-2 jam",
-      categories: ["print", "typing"],
-      owner: "Sky Thedens",
-      phone: "081234567890",
-      address: "Jl. Kuanino",
-      isActive: true,
-      userId: "shop-user-1",
-    },
-    {
-      id: "shop-2",
-      name: "Stevano Printing Lanudal",
-      rating: 4.9,
-      reviews: 342,
-      basePrice: 250,
-      openHours: "07:00 - 22:00",
-      estimatedTime: "30 menit - 1 jam",
-      categories: ["print", "photo", "banner", "binding"],
-      owner: "Stevano",
-      phone: "081234567891",
-      address: "Jl. Lanudal Raya No. 45",
-      isActive: true,
-      userId: "shop-user-2",
-    },
-    {
-      id: "shop-3",
-      name: "Istana Fotocopy",
-      rating: 4.7,
-      reviews: 289,
-      basePrice: 250,
-      openHours: "08:00 - 21:00",
-      estimatedTime: "30 menit - 1 jam",
-      categories: ["print", "photo", "banner", "binding"],
-      owner: "Istana FC",
-      phone: "081234567892",
-      address: "Jl. Penfui",
-      isActive: true,
-      userId: "shop-user-3",
-    },
-    {
-      id: "shop-4",
-      name: "Bintang Jasa",
-      rating: 4.6,
-      reviews: 198,
-      basePrice: 250,
-      openHours: "08:00 - 20:00",
-      estimatedTime: "1-2 jam",
-      categories: ["print", "binding"],
-      owner: "Bintang",
-      phone: "081234567893",
-      address: "Jl. Penfui",
-      isActive: true,
-      userId: "shop-user-4",
-    },
-    {
-      id: "shop-5",
-      name: "Sitarda Center",
-      rating: 4.8,
-      reviews: 276,
-      basePrice: 250,
-      openHours: "08:00 - 21:00",
-      estimatedTime: "30 menit - 1 jam",
-      categories: ["print", "photo", "binding"],
-      owner: "Sitarda",
-      phone: "081234567894",
-      address: "Jl. Sitarda",
-      isActive: true,
-      userId: "shop-user-5",
-    },
-    {
-      id: "shop-6",
-      name: "Anugerah FotoCopy",
-      rating: 4.9,
-      reviews: 412,
-      basePrice: 250,
-      openHours: "07:30 - 22:00",
-      estimatedTime: "30 menit - 1 jam",
-      categories: ["print", "photo", "binding", "scan"],
-      owner: "Anugerah",
-      phone: "081234567895",
-      address: "Jl. Bimoku",
-      isActive: true,
-      userId: "shop-user-6",
-    },
-  ]);
-
+  // CENTRALIZED STATE - Fetched from API
+  const [users, setUsers] = useState<User[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
 
   // Chat Messages State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
-  // Load existing orders from Supabase on app start (if configured)
+  // Load active shops on mount (guests can see shops)
   useEffect(() => {
-    const loadOrders = async () => {
+    const loadShops = async () => {
       try {
-        const { data, error } = await supabase
-          .from("orders")
-          .select("*");
-        if (!error && data) {
-          setOrders(data.map((r: any) => mapOrderFromDb(r) as Order));
-        }
-      } catch (e) {
-        // ignore - fallback is local state
-        console.error("Failed to load orders from Supabase:", e);
-      }
+        const data = await api.getShops();
+        setShops(data);
+      } catch (e) { console.error("Failed to load shops", e); }
     };
-
-    void loadOrders();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    loadShops();
   }, []);
+
+  const loadFullData = async () => {
+    try {
+      const [u, s, o] = await Promise.all([
+        api.getUsers(),
+        api.getShops(),
+        api.getOrders()
+      ]);
+      setUsers(u);
+      setShops(s);
+      setOrders(o);
+    } catch (e) {
+      console.error("Failed to load full data", e);
+    }
+  };
 
   // Categories - Can be managed by admin
   const [categories, setCategories] = useState<Category[]>([
@@ -362,61 +201,67 @@ export default function App() {
     setCurrentPage("login");
   };
 
-  const handleLogin = (
+  const handleLogin = async (
     email: string,
     password: string,
-  ): boolean => {
-    // Find user with matching credentials
-    const foundUser = users.find(
-      (u) =>
-        u.email === email &&
-        u.password === password &&
-        u.isActive !== false,
-    );
+  ) => {
+    try {
+      const loggedUser = await api.login(email, password);
+      setUser(loggedUser);
 
-    if (!foundUser) {
-      return false; // Login failed
+      // Load data based on role
+      if (loggedUser.role === 'admin' || loggedUser.role === 'shop') {
+        await loadFullData();
+      } else {
+        // Customer - load active shops and own orders
+        const myOrders = await api.getOrders(loggedUser.id);
+        setOrders(myOrders);
+        // Re-fetch shops to be sure
+        const activeShops = await api.getShops();
+        setShops(activeShops);
+      }
+
+      // Route based on role
+      if (loggedUser.role === "admin") {
+        setCurrentPage("adminDashboard");
+      } else if (loggedUser.role === "shop") {
+        setCurrentPage("shopDashboard");
+      } else {
+        setCurrentPage("category");
+      }
+      return true;
+    } catch (err: any) {
+      alert(err.message || "Login failed");
+      return false;
     }
-
-    // Check if role matches
-    if (foundUser.role !== selectedRole) {
-      return false; // Role mismatch
-    }
-
-    setUser(foundUser);
-
-    // Route based on role
-    if (foundUser.role === "admin") {
-      setCurrentPage("adminDashboard");
-    } else if (foundUser.role === "shop") {
-      setCurrentPage("shopDashboard");
-    } else {
-      setCurrentPage("category");
-    }
-
-    return true; // Login success
   };
 
-  const handleRegister = (
+  const handleRegister = async (
     userData: Omit<User, "id" | "role">,
   ) => {
-    const newUser: User = {
+    const userToCreate = {
       ...userData,
-      id: `user-${Date.now()}`,
+      // id: "", // API handles ID
       role: selectedRole || "customer",
       isActive: true,
-    };
+    } as User;
 
-    setUsers([...users, newUser]);
-    setUser(newUser);
+    try {
+      const newUser = await api.registerUser(userToCreate);
+      setUsers([...users, newUser]);
+      setUser(newUser);
 
-    // Route based on role
-    if (newUser.role === "admin") {
-      setCurrentPage("adminDashboard");
-    } else if (newUser.role === "shop") {
-      setCurrentPage("shopDashboard");
-    } else {
-      setCurrentPage("category");
+      // Route based on role
+      if (newUser.role === "admin") {
+        setCurrentPage("adminDashboard");
+      } else if (newUser.role === "shop") {
+        setCurrentPage("shopDashboard");
+      } else {
+        setCurrentPage("category");
+      }
+    } catch (err: any) {
+      console.error("Registration failed:", err);
+      alert(`Registration failed: ${err.message}`);
     }
   };
 
@@ -444,6 +289,7 @@ export default function App() {
     setCurrentPage("payment");
   };
 
+  // Use API for order creation
   const handlePaymentSubmit = async (
     paymentMethod: string,
     totalPrice: number,
@@ -472,49 +318,13 @@ export default function App() {
     };
 
     try {
-      // Prefer Edge Function for secure insert
-      const res: any = await supabase.functions.invoke("create_order", {
-        body: JSON.stringify(mapOrderToDb(newOrder)),
-      });
-
-      let json: any = null;
-      try { json = await res.json(); } catch (_) { json = res; }
-
-      if (!res || (res.status && res.status >= 400)) {
-        console.warn('Edge function failed, falling back to direct insert (anon key)');
-        const { data: d2, error: e2 } = await supabase.from('orders').insert([mapOrderToDb(newOrder)]).select().single();
-        if (e2 || !d2) {
-          console.error('Direct insert failed:', e2);
-          setCurrentOrder(newOrder);
-          setOrders([...orders, newOrder]);
-        } else {
-          const mapped = mapOrderFromDb(d2);
-          setCurrentOrder(mapped as Order);
-          setOrders([...orders, mapped as Order]);
-        }
-      } else {
-        const mapped = mapOrderFromDb(json);
-        setCurrentOrder(mapped as Order);
-        setOrders([...orders, mapped as Order]);
-      }
+      const createdOrder = await api.createOrder(newOrder);
+      setCurrentOrder(createdOrder);
+      setOrders([...orders, createdOrder]);
     } catch (err) {
-      console.warn('Create order (functions) failed, trying direct insert', (err instanceof Error ? err.message : String(err)));
-      try {
-        const { data: d2, error: e2 } = await supabase.from('orders').insert([mapOrderToDb(newOrder)]).select().single();
-        if (e2 || !d2) {
-          console.error('Direct insert failed:', e2);
-          setCurrentOrder(newOrder);
-          setOrders([...orders, newOrder]);
-        } else {
-          const mapped = mapOrderFromDb(d2);
-          setCurrentOrder(mapped as Order);
-          setOrders([...orders, mapped as Order]);
-        }
-      } catch (err2) {
-        console.error('Direct insert attempt failed:', (err2 instanceof Error ? err2.message : String(err2)));
-        setCurrentOrder(newOrder);
-        setOrders([...orders, newOrder]);
-      }
+      console.error('Create order failed:', err);
+      // Fallback or alert user
+      alert("Failed to create order. Please try again.");
     }
 
     setCurrentPage("orderTracking");
@@ -525,53 +335,19 @@ export default function App() {
     newStatus: Order["status"],
   ) => {
     try {
-      const res: any = await supabase.functions.invoke("update_order_status", {
-        body: JSON.stringify({ id: orderId, status: newStatus }),
-      });
-
-      let json: any = null;
-      try { json = await res.json(); } catch (_) { json = res; }
-
-      if (!res || (res.status && res.status >= 400)) {
-        console.warn('Edge function update failed, falling back to direct update');
-        const { data: d2, error: e2 } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId).select().single();
-        if (e2 || !d2) {
-          console.error('Direct update failed:', e2);
-          setOrders(orders.map((order) => order.id === orderId ? { ...order, status: newStatus } : order));
-          if (currentOrder && currentOrder.id === orderId) setCurrentOrder({ ...currentOrder, status: newStatus });
-        } else {
-          const mapped = mapOrderFromDb(d2);
-          setOrders(orders.map((order) => order.id === orderId ? (mapped as Order) : order));
-          if (currentOrder && currentOrder.id === orderId) setCurrentOrder(mapped as Order);
-        }
-      } else {
-        const mapped = mapOrderFromDb(json);
-        setOrders(orders.map((order) => order.id === orderId ? (mapped as Order) : order));
-        if (currentOrder && currentOrder.id === orderId) setCurrentOrder(mapped as Order);
-      }
+      const updatedOrder = await api.updateOrderStatus(orderId, newStatus);
+      setOrders(orders.map((order) => order.id === orderId ? updatedOrder : order));
+      if (currentOrder && currentOrder.id === orderId) setCurrentOrder(updatedOrder);
     } catch (err) {
-      console.warn('Update order function failed, trying direct update', (err instanceof Error ? err.message : String(err)));
-      try {
-        const { data: d2, error: e2 } = await supabase.from('orders').update({ status: newStatus }).eq('id', orderId).select().single();
-        if (e2 || !d2) {
-          console.error('Direct update failed:', e2);
-          setOrders(orders.map((order) => order.id === orderId ? { ...order, status: newStatus } : order));
-          if (currentOrder && currentOrder.id === orderId) setCurrentOrder({ ...currentOrder, status: newStatus });
-        } else {
-          const mapped = mapOrderFromDb(d2);
-          setOrders(orders.map((order) => order.id === orderId ? (mapped as Order) : order));
-          if (currentOrder && currentOrder.id === orderId) setCurrentOrder(mapped as Order);
-        }
-      } catch (err2) {
-        console.error('Direct update attempt failed:', (err2 instanceof Error ? err2.message : String(err2)));
-      }
+      console.error('Update order failed:', err);
+      alert("Failed to update status.");
     }
   };
 
   const navigateToRating = (order?: Order) => {
     // Set currentOrder if provided (from OrderTrackingPage)
     const orderToRate = order || currentOrder;
-    
+
     if (orderToRate) {
       setCurrentOrder(orderToRate);
       const shop = shops.find(
@@ -616,7 +392,7 @@ export default function App() {
 
   const handleUpdateProfile = (name: string, email: string, phone: string, address: string) => {
     if (!user) return;
-    
+
     const updatedUser: User = {
       ...user,
       name,
@@ -624,7 +400,7 @@ export default function App() {
       phone,
       address,
     };
-    
+
     setUser(updatedUser);
     // Update in users array as well
     setUsers(
@@ -690,7 +466,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-gray-50">
       {currentPage === "roleSelection" && (
-        <RoleSelectionPage 
+        <RoleSelectionPage
           onSelectRole={handleRoleSelect}
           onBack={() => setCurrentPage("landingPage")}
         />

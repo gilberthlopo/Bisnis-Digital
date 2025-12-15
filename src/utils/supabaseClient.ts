@@ -3,7 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Prevent blank screen crash if keys are missing
+if (!supabaseUrl || !supabaseAnonKey || supabaseUrl === 'https://your-project-ref.supabase.co') {
+  console.error("Supabase Keys are missing or default! Please check .env");
+}
+
+export const supabase = createClient(supabaseUrl || "https://placeholder.supabase.co", supabaseAnonKey || "placeholder");
 
 // Helpers to map between DB (snake_case) and client (camelCase)
 export function mapOrderFromDb(row: any) {

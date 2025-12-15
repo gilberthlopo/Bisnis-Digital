@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  password  String
+  phone     String?
+  address   String?
+  role      String
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  orders    Order[]
+  shops     Shop[]
+
+  @@map("users")
+}
+
+model Shop {
+  id            String      @id @default(uuid())
+  name          String
+  owner         User?       @relation(fields: [userId], references: [id])
+  userId        String?     @map("user_id")
+  phone         String?
+  address       String?
+  basePrice     Decimal?    @default(0) @map("base_price") @db.Decimal
+  rating        Decimal?    @default(0) @db.Decimal
+  reviews       Int?        @default(0)
+  openHours     String?     @map("open_hours")
+  estimatedTime String?     @map("estimated_time")
+  categories    String[]    @default([])
+  isActive      Boolean?    @default(true) @map("is_active")
+  orders        Order[]
+  schedules     schedules[]
+  services      services[]
+
+  @@map("shops")
+}
+
+model Order {
+  id              String     @id @default(uuid())
+  userId          String?    @map("user_id")
+  shopId          String?    @map("shop_id")
+  category        String?
+  serviceDetail   Json?      @map("service_detail")
+  fileName        String?    @map("file_name")
+  pickupDate      String?    @map("pickup_date")
+  pickupTime      String?    @map("pickup_time")
+  paymentMethod   String?    @map("payment_method")
+  totalPrice      Decimal?   @map("total_price") @db.Decimal
+  status          String?    @default("pending")
+  rejectionReason String?    @map("rejection_reason")
+  rating          Int?
+  review          String?
+  createdAt       DateTime?  @default(now()) @map("created_at") @db.Timestamptz(6)
+  messages        messages[]
+  shop            Shop?      @relation(fields: [shopId], references: [id], onUpdate: NoAction)
+  user            User?      @relation(fields: [userId], references: [id], onUpdate: NoAction)
+
+  @@index([shopId], map: "idx_orders_shop_id")
+  @@index([userId], map: "idx_orders_user_id")
+  @@map("orders")
+}
+
+model categories {
+  id         String  @id
+  name       String
+  icon       String?
+  created_by String?
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model kv_store_2c9f074f {
+  key   String @id
+  value Json
+
+  @@index([key])
+  @@index([key], map: "kv_store_2c9f074f_key_idx1")
+}
+
+model messages {
+  id         String    @id
+  order_id   String?
+  sender     String?
+  content    String?
+  created_at DateTime? @default(now()) @db.Timestamptz(6)
+  orders     Order?    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model schedules {
+  id         String  @id
+  shop_id    String?
+  date       String?
+  open_time  String?
+  close_time String?
+  shops      Shop?   @relation(fields: [shop_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model services {
+  id          String   @id
+  shop_id     String?
+  name        String
+  description String?
+  price       Decimal? @default(0) @db.Decimal
+  category    String?
+  is_active   Boolean? @default(true)
+  shops       Shop?    @relation(fields: [shop_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}

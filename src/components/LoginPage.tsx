@@ -3,7 +3,7 @@ import { Mail, Lock, ArrowLeft, Users, Store, Shield, Eye, EyeOff, Printer } fro
 import type { Role } from './RoleSelectionPage';
 
 type LoginPageProps = {
-  onLogin: (email: string, password: string) => boolean;
+  onLogin: (email: string, password: string) => Promise<boolean> | boolean;
   onNavigateToRegister: () => void;
   onBack?: () => void;
   selectedRole?: Role;
@@ -15,29 +15,30 @@ export function LoginPage({ onLogin, onNavigateToRegister, onBack, selectedRole 
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // Add simple loading state if desired
 
   const getRoleInfo = () => {
     switch (selectedRole) {
       case 'admin':
-        return { 
-          icon: Shield, 
-          label: 'Admin', 
+        return {
+          icon: Shield,
+          label: 'Admin',
           color: 'from-purple-500 to-pink-500',
           bgColor: 'from-purple-500/20 to-pink-500/20',
           illustration: '🛡️'
         };
       case 'shop':
-        return { 
-          icon: Store, 
-          label: 'Toko', 
+        return {
+          icon: Store,
+          label: 'Toko',
           color: 'from-emerald-500 to-teal-500',
           bgColor: 'from-emerald-500/20 to-teal-500/20',
           illustration: '🏪'
         };
       default:
-        return { 
-          icon: Users, 
-          label: 'Pelanggan', 
+        return {
+          icon: Users,
+          label: 'Pelanggan',
           color: 'from-blue-500 to-cyan-500',
           bgColor: 'from-blue-500/20 to-cyan-500/20',
           illustration: '👥'
@@ -48,14 +49,20 @@ export function LoginPage({ onLogin, onNavigateToRegister, onBack, selectedRole 
   const roleInfo = getRoleInfo();
   const RoleIcon = roleInfo.icon;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
-    const loginSuccess = onLogin(email, password);
-    
-    if (!loginSuccess) {
-      setError('Email atau password salah, atau role tidak sesuai!');
+    setIsLoading(true);
+
+    try {
+      const loginSuccess = await onLogin(email, password);
+      if (!loginSuccess) {
+        setError('Email atau password salah, atau role tidak sesuai!');
+      }
+    } catch (e) {
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -73,8 +80,8 @@ export function LoginPage({ onLogin, onNavigateToRegister, onBack, selectedRole 
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="curved-lines" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-              <path d="M0 50 Q 25 25, 50 50 T 100 50" stroke="white" strokeWidth="0.5" fill="none"/>
-              <path d="M0 75 Q 25 50, 50 75 T 100 75" stroke="white" strokeWidth="0.5" fill="none"/>
+              <path d="M0 50 Q 25 25, 50 50 T 100 50" stroke="white" strokeWidth="0.5" fill="none" />
+              <path d="M0 75 Q 25 50, 50 75 T 100 75" stroke="white" strokeWidth="0.5" fill="none" />
             </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#curved-lines)" />
@@ -214,7 +221,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, onBack, selectedRole 
             <div className="relative">
               {/* Glow Circle */}
               <div className={`absolute inset-0 bg-gradient-to-br ${roleInfo.color} rounded-full blur-3xl opacity-30`} />
-              
+
               {/* Main Circle */}
               <div className={`relative w-[400px] h-[400px] bg-gradient-to-br ${roleInfo.color} rounded-full flex items-center justify-center shadow-2xl`}>
                 {/* Inner Circle */}
@@ -229,7 +236,7 @@ export function LoginPage({ onLogin, onNavigateToRegister, onBack, selectedRole 
                   <Printer className="w-8 h-8 text-white" />
                 </div>
               </div>
-              
+
               <div className="absolute bottom-10 left-10">
                 <div className={`w-12 h-12 bg-gradient-to-br ${roleInfo.color} rounded-full flex items-center justify-center animate-pulse`}>
                   <RoleIcon className="w-6 h-6 text-white" />
