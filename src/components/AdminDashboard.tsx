@@ -640,15 +640,7 @@ export function AdminDashboard({ user, shops, users, orders, categories, onUpdat
                 />
               </div>
 
-              <div>
-                <label className="block text-gray-700 mb-2">Nama Pemilik</label>
-                <input
-                  type="text"
-                  value={shopForm.owner}
-                  onChange={(e) => setShopForm({ ...shopForm, owner: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-orange-500 text-gray-800"
-                />
-              </div>
+
 
               <div>
                 <label className="block text-gray-700 mb-2">Nomor Telepon</label>

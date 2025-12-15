@@ -15,12 +15,13 @@ type ShopDashboardProps = {
   shops: Shop[];
   orders: Order[];
   users: User[];
+  categories: any[]; // Using any to avoid importing Category type if not easily available, or better: Category[]
   onUpdateOrders: (orders: Order[]) => void;
   onUpdateShops: (shops: Shop[]) => void;
   onLogout: () => void;
 };
 
-export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUpdateShops, onLogout }: ShopDashboardProps) {
+export function ShopDashboard({ user, shops, orders, users, categories, onUpdateOrders, onUpdateShops, onLogout }: ShopDashboardProps) {
   useEffect(() => {
     const myShop = shops.find((s) => s.userId === user.id);
     if (!myShop) return;
@@ -75,6 +76,18 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
   // Chat State
   const [showChat, setShowChat] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+  // Edit Shop State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Partial<Shop>>({});
+
+  // Initialize edit form when shop data available
+  useEffect(() => {
+    const shop = shops.find(s => s.userId === user.id);
+    if (shop) {
+      setEditForm(shop);
+    }
+  }, [shops, user.id]);
 
   // Load messages
   useEffect(() => {
@@ -173,6 +186,27 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
     return customer ? customer.name : 'Unknown';
   };
 
+  const handleSaveShop = async () => {
+    if (!myShop) return;
+    try {
+      const updatedShop = await api.updateShop(myShop.id, editForm);
+      onUpdateShops(shops.map(s => s.id === myShop.id ? updatedShop : s));
+      setIsEditing(false);
+      alert("Pengaturan toko berhasil disimpan!");
+    } catch (e) {
+      console.error("Failed to update shop", e);
+      alert("Gagal menyimpan perubahan.");
+    }
+  };
+
+  const toggleCategory = (catId: string) => {
+    const currentCats = editForm.categories || [];
+    if (currentCats.includes(catId)) {
+      setEditForm({ ...editForm, categories: currentCats.filter(c => c !== catId) });
+    } else {
+      setEditForm({ ...editForm, categories: [...currentCats, catId] });
+    }
+  };
   return (
     <div className="min-h-screen bg-[#0A0A0A] text-white">
       {/* Animated Background */}
@@ -426,33 +460,139 @@ export function ShopDashboard({ user, shops, orders, users, onUpdateOrders, onUp
         {/* Settings Tab */}
         {activeTab === 'settings' && (
           <div className="bg-gray-900/50 backdrop-blur-md rounded-2xl p-8 border border-gray-800 shadow-xl">
-            <h3 className="text-white text-xl mb-6">Pengaturan Toko</h3>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-white mb-2">Nama Toko</label>
-                <input
-                  type="text"
-                  value={myShop.name}
-                  className="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                  readOnly
-                />
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-white text-xl">Pengaturan Toko</h3>
+              {!isEditing ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-all border border-gray-700"
+                >
+                  <Edit className="w-4 h-4" />
+                  Edit Profil
+                </button>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      setIsEditing(false);
+                      setEditForm(myShop); // Reset
+                    }}
+                    className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleSaveShop}
+                    className="flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:shadow-lg transition-all"
+                  >
+                    <Check className="w-4 h-4" />
+                    Simpan
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-gray-400 mb-2 text-sm">Nama Toko</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editForm.name || ''}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      className="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  ) : (
+                    <p className="text-xl text-white font-medium">{myShop.name}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 mb-2 text-sm">Nomor Telepon</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editForm.phone || ''}
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      className="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  ) : (
+                    <p className="text-lg text-white">{myShop.phone}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 mb-2 text-sm">Alamat</label>
+                  {isEditing ? (
+                    <textarea
+                      value={editForm.address || ''}
+                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      className="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[100px]"
+                    />
+                  ) : (
+                    <p className="text-lg text-white leading-relaxed">{myShop.address}</p>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-white mb-2">Alamat</label>
-                <textarea
-                  value={myShop.address}
-                  className="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[100px]"
-                  readOnly
-                />
-              </div>
-              <div>
-                <label className="block text-white mb-2">Jam Operasional</label>
-                <input
-                  type="text"
-                  value={myShop.openHours}
-                  className="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                  readOnly
-                />
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-gray-400 mb-2 text-sm">Jam Operasional</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editForm.openHours || ''}
+                      onChange={(e) => setEditForm({ ...editForm, openHours: e.target.value })}
+                      className="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  ) : (
+                    <p className="text-lg text-white">{myShop.openHours}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 mb-2 text-sm">Harga Dasar (Rp)</label>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      value={editForm.basePrice || 0}
+                      onChange={(e) => setEditForm({ ...editForm, basePrice: parseInt(e.target.value) })}
+                      className="w-full p-4 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  ) : (
+                    <p className="text-lg text-white">Rp {myShop.basePrice.toLocaleString()}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-gray-400 mb-3 text-sm">Layanan yang Tersedia</label>
+                  <div className="grid grid-cols-1 gap-3">
+                    {categories.map((cat) => {
+                      const isSelected = (isEditing ? editForm.categories : myShop.categories)?.includes(cat.name);
+                      return (
+                        <div
+                          key={cat.id}
+                          onClick={() => isEditing && toggleCategory(cat.name)}
+                          className={`p-3 rounded-xl border flex items-center gap-3 transition-all ${isEditing ? 'cursor-pointer' : ''} ${isSelected
+                            ? 'bg-green-500/20 border-green-500/50'
+                            : 'bg-gray-800/30 border-gray-700 opacity-60'
+                            }`}
+                        >
+                          <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${isSelected
+                            ? 'bg-green-500 border-green-500'
+                            : 'border-gray-500'
+                            }`}>
+                            {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                          </div>
+                          <span className={`${isSelected ? 'text-white' : 'text-gray-400'}`}>
+                            {cat.name}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>

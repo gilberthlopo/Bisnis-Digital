@@ -494,6 +494,7 @@ function AppContent() {
             users={users}
             onUpdateOrders={setOrders}
             onUpdateShops={setShops}
+            categories={categories}
             onLogout={handleLogout}
           />
         ) : <Navigate to="/" />
