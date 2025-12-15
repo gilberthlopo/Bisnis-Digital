@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Package, Clock, CheckCircle, MessageCircle, MapPin, Calendar, Filter, Star, Info, Store, XCircle } from 'lucide-react';
-import type { Order, Shop } from '../App';
+import { ArrowLeft, Package, Clock, CheckCircle, MessageCircle, MapPin, Calendar, Filter, Star, Info, Store, XCircle, User, LogOut } from 'lucide-react';
+import type { Order, Shop, User as UserType } from '../App';
 import { api } from '../services/api';
 import { ChatModal, type ChatMessage } from './ChatModal';
 
@@ -11,6 +11,9 @@ type OrderTrackingPageProps = {
   onStatusUpdate: (orderId: string, status: Order['status']) => void;
   onNavigateToRating: (order: Order) => void;
   onBack: () => void;
+  onLogout: () => void;
+  onViewProfile: () => void;
+  user: UserType | null;
 };
 
 export function OrderTrackingPage({
@@ -19,7 +22,10 @@ export function OrderTrackingPage({
   currentOrder,
   onStatusUpdate,
   onNavigateToRating,
-  onBack
+  onBack,
+  onLogout,
+  onViewProfile,
+  user
 }: OrderTrackingPageProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(currentOrder);
   const [showChat, setShowChat] = useState(false);
@@ -126,16 +132,21 @@ export function OrderTrackingPage({
       {/* Header */}
       <div className="relative border-b border-gray-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-6">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-300 hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Kembali
-          </button>
-          <div>
-            <h1 className="text-3xl mb-2">Pesanan Saya</h1>
-            <p className="text-gray-400">Lacak dan kelola pesanan Anda</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-300 hover:text-white" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-semibold">Pesanan Saya</h1>
+                <p className="text-gray-400 text-sm">Lacak dan kelola pesanan Anda</p>
+              </div>
+            </div>
+
+
           </div>
         </div>
       </div>

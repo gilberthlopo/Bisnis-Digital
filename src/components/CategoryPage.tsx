@@ -90,11 +90,72 @@ export function CategoryPage({
       {/* Main Content */}
       <div className="relative max-w-7xl mx-auto px-6 py-8">
 
-        {/* ... (Stats Cards same) ... */}
+        {/* Dashboard Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          {/* Card 1: Total Orders */}
+          <div className="bg-[#111111] rounded-3xl p-6 border border-gray-800 relative overflow-hidden group hover:border-blue-500/30 transition-all">
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/20">
+                <ShoppingBag className="w-6 h-6 text-white" />
+              </div>
+              <ArrowRight className="text-gray-600 group-hover:text-blue-500 transition-colors" />
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm mb-1">Total Pesanan</p>
+              <h3 className="text-4xl font-bold text-white mb-1">{totalOrders}</h3>
+              <p className="text-gray-500 text-xs">Pesanan keseluruhan</p>
+            </div>
+            <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-blue-600/5 rounded-full blur-2xl group-hover:bg-blue-600/10 transition-all" />
+          </div>
 
-        {/* Category Grid */}
-        <div className="flex items-center justify-between mb-6">
-          {/* ... (Title same) ... */}
+          {/* Card 2: In Process */}
+          <div className="bg-[#111111] rounded-3xl p-6 border border-gray-800 relative overflow-hidden group hover:border-purple-500/30 transition-all">
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-12 h-12 bg-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-900/20">
+                <Clock className="w-6 h-6 text-white" />
+              </div>
+              {processingOrders > 0 && (
+                <span className="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-medium border border-purple-500/30">
+                  Aktif
+                </span>
+              )}
+            </div>
+            <div>
+              <p className="text-gray-400 text-sm mb-1">Dalam Proses</p>
+              <h3 className="text-4xl font-bold text-white mb-1">{processingOrders}</h3>
+              <p className="text-gray-500 text-xs">Sedang dikerjakan</p>
+            </div>
+            <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-purple-600/5 rounded-full blur-2xl group-hover:bg-purple-600/10 transition-all" />
+          </div>
+
+          {/* Card 3: Rewards (Gradient) */}
+          <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-3xl p-6 relative overflow-hidden shadow-xl shadow-blue-900/20 group">
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center">
+                <Award className="w-6 h-6 text-white" />
+              </div>
+              <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
+                <Gift className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div>
+              <p className="text-blue-100 text-sm mb-1">Poin Reward</p>
+              <h3 className="text-4xl font-bold text-white mb-2">{rewardPoints}</h3>
+              <div className="flex items-center gap-1.5">
+                <p className="text-blue-100 text-xs">{completedOrders} pesanan selesai</p>
+                <span className="text-xs">✨</span>
+              </div>
+            </div>
+            {/* Decor */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+          </div>
+        </div>
+
+        {/* Layanan Kami Title */}
+        <div className="mb-2">
+          <h2 className="text-2xl font-semibold text-white mb-1">Layanan Kami</h2>
+          <p className="text-gray-400 text-sm">Pilih layanan yang Anda butuhkan</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
           {categories.map((category, index) => {

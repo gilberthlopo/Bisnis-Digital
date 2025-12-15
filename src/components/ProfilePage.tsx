@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Edit, Save, Award, Package, Star } from 'lucide-react';
+import { ArrowLeft, User, Mail, Phone, MapPin, Calendar, Edit, Save, Award, Package, Star, LogOut, ShoppingBag, Store } from 'lucide-react';
 import type { User as UserType, Order } from '../App';
 
 type ProfilePageProps = {
@@ -7,9 +7,12 @@ type ProfilePageProps = {
   orders: Order[];
   onUpdateProfile: (name: string, email: string, phone: string, address: string) => void;
   onBack: () => void;
+  onLogout: () => void;
+  onViewOrders: () => void;
+  onGoHome: () => void;
 };
 
-export function ProfilePage({ user, orders, onUpdateProfile, onBack }: ProfilePageProps) {
+export function ProfilePage({ user, orders, onUpdateProfile, onBack, onLogout, onViewOrders, onGoHome }: ProfilePageProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
@@ -42,16 +45,19 @@ export function ProfilePage({ user, orders, onUpdateProfile, onBack }: ProfilePa
       {/* Header */}
       <div className="relative border-b border-gray-800 bg-black/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-6 py-6">
-          <button
-            onClick={onBack}
-            className="flex items-center gap-2 text-gray-300 hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Kembali
-          </button>
-          <div>
-            <h1 className="text-3xl mb-2">Profil Saya</h1>
-            <p className="text-gray-400">Kelola informasi profil Anda</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={onBack}
+                className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-gray-300 hover:text-white" />
+              </button>
+              <div>
+                <h1 className="text-2xl font-semibold">Profil Saya</h1>
+                <p className="text-gray-400 text-sm">Kelola informasi profil Anda</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -65,7 +71,7 @@ export function ProfilePage({ user, orders, onUpdateProfile, onBack }: ProfilePa
             <div className="bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-12 -mt-12" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-8 -mb-8" />
-              
+
               <div className="relative text-center">
                 <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 shadow-xl">
                   <User className="w-12 h-12 text-white" />
@@ -97,7 +103,7 @@ export function ProfilePage({ user, orders, onUpdateProfile, onBack }: ProfilePa
                   </div>
                   <span className="text-white text-xl">{totalOrders}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl border border-gray-700">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-green-500/20 rounded-lg">
@@ -107,7 +113,7 @@ export function ProfilePage({ user, orders, onUpdateProfile, onBack }: ProfilePa
                   </div>
                   <span className="text-white text-xl">{completedOrders}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl border border-gray-700">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-500/20 rounded-lg">

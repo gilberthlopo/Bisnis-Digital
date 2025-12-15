@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { api } from "./services/api";
-import { supabase, mapOrderFromDb, mapOrderToDb } from "./utils/supabaseClient";
 import {
   RoleSelectionPage,
   type Role,
@@ -18,9 +18,10 @@ import { ProfilePage } from "./components/ProfilePage";
 import { AdminDashboard } from "./components/AdminDashboard";
 import { ShopDashboard } from "./components/ShopDashboard";
 import { LandingPage } from "./components/LandingPage";
+import { CustomerLayout } from "./components/layouts/CustomerLayout";
 import type { ChatMessage } from "./components/ChatModal";
 
-// BeresinAja v1.0 - Local State Management (No Database)
+// ... Types definitions ...
 
 export type User = {
   id: string;
@@ -39,7 +40,7 @@ export type Category = {
   id: string;
   name: string;
   icon: string;
-  createdBy?: string; // 'system' or 'admin-xxx'
+  createdBy?: string;
 };
 
 export type Shop = {
@@ -55,8 +56,8 @@ export type Shop = {
   phone: string;
   address: string;
   isActive: boolean;
-  userId?: string; // Link to user account for shop login
-  services?: ShopService[]; // Custom services added by shop
+  userId?: string;
+  services?: ShopService[];
 };
 
 export type ShopService = {
@@ -77,15 +78,13 @@ export type ServiceDetail = {
   binding?: string;
   photoSize?: string;
   isBinding?: boolean;
-  bindingType?: "none" | "regular" | "book"; // none = 0, regular = 5000, book = 20000
-  deliveryPackage?: "express" | "normal" | "economy"; // express = +50%, normal = base, economy = -20%
-  // Banner/Baliho fields
-  bannerLength?: number; // panjang dalam meter
-  bannerWidth?: number; // lebar dalam meter
-  // Photo custom fields
-  customPhotoWidth?: number; // lebar dalam cm
-  customPhotoHeight?: number; // tinggi dalam cm
-  photoBackground?: string; // warna latar: putih, merah, biru, custom
+  bindingType?: "none" | "regular" | "book";
+  deliveryPackage?: "express" | "normal" | "economy";
+  bannerLength?: number;
+  bannerWidth?: number;
+  customPhotoWidth?: number;
+  customPhotoHeight?: number;
+  photoBackground?: string;
   notes?: string;
 };
 
@@ -112,63 +111,65 @@ export type Order = {
   createdAt: string;
 };
 
-type Page =
-  | "roleSelection"
-  | "login"
-  | "register"
-  | "category"
-  | "shopList"
-  | "serviceDetail"
-  | "schedule"
-  | "payment"
-  | "orderTracking"
-  | "rating"
-  | "profile"
-  | "adminDashboard"
-  | "shopDashboard"
-  | "landingPage";
-
-export default function App() {
-  const [currentPage, setCurrentPage] =
-    useState<Page>("landingPage");
-  const [selectedRole, setSelectedRole] = useState<Role | null>(
-    null,
-  );
+function AppContent() {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [selectedCategory, setSelectedCategory] =
-    useState<Category | null>(null);
-  const [selectedShop, setSelectedShop] = useState<Shop | null>(
-    null,
-  );
-  const [serviceDetail, setServiceDetail] =
-    useState<ServiceDetail>({});
-  const [uploadedFile, setUploadedFile] = useState<File | null>(
-    null,
-  );
-  const [scheduleData, setScheduleData] = useState<{
-    date: string;
-    time: string;
-  } | null>(null);
-  const [currentOrder, setCurrentOrder] =
-    useState<Order | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+  const [serviceDetail, setServiceDetail] = useState<ServiceDetail>({});
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [scheduleData, setScheduleData] = useState<{ date: string; time: string; } | null>(null);
+  const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
 
-  // CENTRALIZED STATE - Fetched from API
+  // CENTRALIZED STATE
   const [users, setUsers] = useState<User[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-
-  // Chat Messages State
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
-  // Load active shops on mount (guests can see shops)
+  // Load active shops and Check Session on mount
   useEffect(() => {
-    const loadShops = async () => {
+    const initApp = async () => {
+      // 1. Load Shops
       try {
         const data = await api.getShops();
         setShops(data);
-      } catch (e) { console.error("Failed to load shops", e); }
+      } catch (e) {
+        console.error("Failed to load shops", e);
+      }
+
+      // 2. Check LocalStorage for Session
+      const savedUser = localStorage.getItem("beresinaja_user");
+      if (savedUser) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          setUser(parsedUser);
+
+          // Re-fetch data based on role
+          if (parsedUser.role === 'admin' || parsedUser.role === 'shop') {
+            const [u, s, o] = await Promise.all([
+              api.getUsers(),
+              api.getShops(),
+              api.getOrders()
+            ]);
+            setUsers(u);
+            setShops(s);
+            setOrders(o);
+          } else {
+            // Customer
+            const myOrders = await api.getOrders(parsedUser.id);
+            setOrders(myOrders);
+          }
+        } catch (e) {
+          console.error("Failed to restore session", e);
+          localStorage.removeItem("beresinaja_user");
+        }
+      }
+      setIsLoading(false);
     };
-    loadShops();
+    initApp();
   }, []);
 
   const loadFullData = async () => {
@@ -186,7 +187,6 @@ export default function App() {
     }
   };
 
-  // Categories - Can be managed by admin
   const [categories, setCategories] = useState<Category[]>([
     { id: "print", name: "Print & Fotocopy", icon: "printer", createdBy: "system" },
     { id: "typing", name: "Jasa Ketik", icon: "file-text", createdBy: "system" },
@@ -198,37 +198,28 @@ export default function App() {
 
   const handleRoleSelect = (role: Role) => {
     setSelectedRole(role);
-    setCurrentPage("login");
+    navigate("/login");
   };
 
-  const handleLogin = async (
-    email: string,
-    password: string,
-  ) => {
+  const handleLogin = async (email: string, password: string) => {
     try {
       const loggedUser = await api.login(email, password);
       setUser(loggedUser);
+      localStorage.setItem("beresinaja_user", JSON.stringify(loggedUser));
 
-      // Load data based on role
       if (loggedUser.role === 'admin' || loggedUser.role === 'shop') {
         await loadFullData();
       } else {
-        // Customer - load active shops and own orders
         const myOrders = await api.getOrders(loggedUser.id);
         setOrders(myOrders);
-        // Re-fetch shops to be sure
         const activeShops = await api.getShops();
         setShops(activeShops);
       }
 
-      // Route based on role
-      if (loggedUser.role === "admin") {
-        setCurrentPage("adminDashboard");
-      } else if (loggedUser.role === "shop") {
-        setCurrentPage("shopDashboard");
-      } else {
-        setCurrentPage("category");
-      }
+      if (loggedUser.role === "admin") navigate("/admin");
+      else if (loggedUser.role === "shop") navigate("/shop-dashboard");
+      else navigate("/dashboard");
+
       return true;
     } catch (err: any) {
       alert(err.message || "Login failed");
@@ -236,12 +227,9 @@ export default function App() {
     }
   };
 
-  const handleRegister = async (
-    userData: Omit<User, "id" | "role">,
-  ) => {
+  const handleRegister = async (userData: Omit<User, "id" | "role">) => {
     const userToCreate = {
       ...userData,
-      // id: "", // API handles ID
       role: selectedRole || "customer",
       isActive: true,
     } as User;
@@ -251,14 +239,9 @@ export default function App() {
       setUsers([...users, newUser]);
       setUser(newUser);
 
-      // Route based on role
-      if (newUser.role === "admin") {
-        setCurrentPage("adminDashboard");
-      } else if (newUser.role === "shop") {
-        setCurrentPage("shopDashboard");
-      } else {
-        setCurrentPage("category");
-      }
+      if (newUser.role === "admin") navigate("/admin");
+      else if (newUser.role === "shop") navigate("/shop-dashboard");
+      else navigate("/dashboard");
     } catch (err: any) {
       console.error("Registration failed:", err);
       alert(`Registration failed: ${err.message}`);
@@ -267,40 +250,27 @@ export default function App() {
 
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
-    setCurrentPage("shopList");
+    navigate(`/dashboard/shops/${category.id}`);
   };
 
   const handleShopSelect = (shop: Shop) => {
     setSelectedShop(shop);
-    setCurrentPage("serviceDetail");
+    navigate(`/dashboard/service/${shop.id}`);
   };
 
-  const handleServiceSubmit = (
-    detail: ServiceDetail,
-    file: File | null,
-  ) => {
+  const handleServiceSubmit = (detail: ServiceDetail, file: File | null) => {
     setServiceDetail(detail);
     setUploadedFile(file);
-    setCurrentPage("schedule");
+    navigate("/dashboard/schedule");
   };
 
   const handleScheduleSubmit = (date: string, time: string) => {
     setScheduleData({ date, time });
-    setCurrentPage("payment");
+    navigate("/dashboard/payment");
   };
 
-  // Use API for order creation
-  const handlePaymentSubmit = async (
-    paymentMethod: string,
-    totalPrice: number,
-  ) => {
-    if (
-      !user ||
-      !selectedShop ||
-      !selectedCategory ||
-      !scheduleData
-    )
-      return;
+  const handlePaymentSubmit = async (paymentMethod: string, totalPrice: number) => {
+    if (!user || !selectedShop || !selectedCategory || !scheduleData) return;
 
     const newOrder: Order = {
       id: `ORD-${Date.now()}`,
@@ -321,19 +291,14 @@ export default function App() {
       const createdOrder = await api.createOrder(newOrder);
       setCurrentOrder(createdOrder);
       setOrders([...orders, createdOrder]);
+      navigate("/dashboard/orders");
     } catch (err) {
       console.error('Create order failed:', err);
-      // Fallback or alert user
       alert("Failed to create order. Please try again.");
     }
-
-    setCurrentPage("orderTracking");
   };
 
-  const handleOrderStatusUpdate = async (
-    orderId: string,
-    newStatus: Order["status"],
-  ) => {
+  const handleOrderStatusUpdate = async (orderId: string, newStatus: Order["status"]) => {
     try {
       const updatedOrder = await api.updateOrderStatus(orderId, newStatus);
       setOrders(orders.map((order) => order.id === orderId ? updatedOrder : order));
@@ -345,36 +310,24 @@ export default function App() {
   };
 
   const navigateToRating = (order?: Order) => {
-    // Set currentOrder if provided (from OrderTrackingPage)
     const orderToRate = order || currentOrder;
-
     if (orderToRate) {
       setCurrentOrder(orderToRate);
-      const shop = shops.find(
-        (s) => s.id === orderToRate.shopId,
-      );
-      if (shop) {
-        setSelectedShop(shop);
-      }
+      const shop = shops.find((s) => s.id === orderToRate.shopId);
+      if (shop) setSelectedShop(shop);
+      navigate("/dashboard/rating");
     }
-    setCurrentPage("rating");
   };
 
-  const handleRatingSubmit = async (
-    rating: number,
-    review: string,
-  ) => {
+  const handleRatingSubmit = async (rating: number, review: string) => {
     if (!currentOrder) return;
-
     try {
       const updatedOrder = await api.submitRating(currentOrder.id, rating, review);
-
-      // Update local state
       setOrders(orders.map(o => o.id === updatedOrder.id ? updatedOrder : o));
       alert("Terima kasih atas penilaian Anda!");
+      navigate("/dashboard");
 
-      setCurrentPage("category");
-      // Reset for new order
+      // Reset flow
       setSelectedCategory(null);
       setSelectedShop(null);
       setServiceDetail({});
@@ -388,37 +341,17 @@ export default function App() {
   };
 
   const handleLogout = () => {
-    // Reset all state
     setUser(null);
-    setSelectedRole(null);
-    setSelectedCategory(null);
-    setSelectedShop(null);
-    setServiceDetail({});
-    setUploadedFile(null);
-    setScheduleData(null);
-    setCurrentOrder(null);
-    // Don't reset orders, users, shops - they persist in session
-    setCurrentPage("roleSelection");
+    localStorage.removeItem("beresinaja_user");
+    navigate("/");
   };
 
   const handleUpdateProfile = async (name: string, email: string, phone: string, address: string) => {
     if (!user) return;
-
     try {
-      const updatedUser = await api.updateUser(user.id, {
-        name,
-        email,
-        phone,
-        address,
-      });
-
+      const updatedUser = await api.updateUser(user.id, { name, email, phone, address });
       setUser(updatedUser);
-      // Update in users array as well
-      setUsers(
-        users.map((u) =>
-          u.id === updatedUser.id ? updatedUser : u,
-        ),
-      );
+      setUsers(users.map((u) => u.id === updatedUser.id ? updatedUser : u));
       alert("Profil berhasil diperbarui!");
     } catch (e: any) {
       console.error("Failed to check update profile", e);
@@ -426,208 +359,155 @@ export default function App() {
     }
   };
 
-  const handleSendMessage = (orderId: string, text: string, sender: 'customer' | 'shop') => {
-    const newMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      orderId,
-      sender,
-      text,
-      timestamp: new Date().toISOString(),
-    };
-    setChatMessages([...chatMessages, newMessage]);
-  };
-
-  const navigateBack = () => {
-    switch (currentPage) {
-      case "login":
-        setCurrentPage("roleSelection");
-        setSelectedRole(null);
-        break;
-      case "register":
-        setCurrentPage("login");
-        break;
-      case "category":
-        setCurrentPage("login");
-        setUser(null);
-        break;
-      case "shopList":
-        setCurrentPage("category");
-        setSelectedCategory(null);
-        break;
-      case "serviceDetail":
-        setCurrentPage("shopList");
-        setSelectedShop(null);
-        break;
-      case "schedule":
-        setCurrentPage("serviceDetail");
-        setServiceDetail({});
-        setUploadedFile(null);
-        break;
-      case "payment":
-        setCurrentPage("schedule");
-        setScheduleData(null);
-        break;
-      case "orderTracking":
-        setCurrentPage("category");
-        break;
-      case "rating":
-        setCurrentPage("orderTracking");
-        break;
-      case "profile":
-        setCurrentPage("category");
-        break;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {currentPage === "roleSelection" && (
-        <RoleSelectionPage
-          onSelectRole={handleRoleSelect}
-          onBack={() => setCurrentPage("landingPage")}
-        />
-      )}
+    <Routes>
+      <Route path="/" element={<LandingPage onNavigateToLogin={() => navigate("/role-selection")} shops={shops} />} />
+      <Route path="/role-selection" element={<RoleSelectionPage onSelectRole={handleRoleSelect} onBack={() => navigate("/")} />} />
+      <Route path="/login" element={<LoginPage onLogin={handleLogin} onNavigateToRegister={() => navigate("/register")} onBack={() => navigate("/")} selectedRole={selectedRole || "customer"} />} />
+      <Route path="/register" element={<RegisterPage onRegister={handleRegister} onBack={() => navigate("/login")} />} />
 
-      {currentPage === "login" && (
-        <LoginPage
-          onLogin={handleLogin}
-          onNavigateToRegister={() =>
-            setCurrentPage("register")
-          }
-          onBack={() => navigateBack()}
-          selectedRole={selectedRole || "customer"}
-        />
-      )}
-
-      {currentPage === "register" && (
-        <RegisterPage
-          onRegister={handleRegister}
-          onBack={navigateBack}
-        />
-      )}
-
-      {currentPage === "category" && user && (
-        <CategoryPage
-          user={user}
-          orders={orders.filter((o) => o.userId === user.id)}
-          categories={categories}
-          shops={shops}
-          onCategorySelect={handleCategorySelect}
-          onViewOrders={() => setCurrentPage("orderTracking")}
-          onLogout={handleLogout}
-          onViewProfile={() => setCurrentPage("profile")}
-        />
-      )}
-
-      {currentPage === "profile" && user && (
-        <ProfilePage
-          user={user}
-          orders={orders.filter((o) => o.userId === user.id)}
-          onBack={navigateBack}
-          onUpdateProfile={handleUpdateProfile}
-        />
-      )}
-
-      {currentPage === "shopList" && selectedCategory && (
-        <ShopListPage
-          category={selectedCategory}
-          shops={shops.filter((s) => s.isActive)} // Only show active shops
-          onShopSelect={handleShopSelect}
-          onBack={navigateBack}
-        />
-      )}
-
-      {currentPage === "serviceDetail" &&
-        selectedShop &&
-        selectedCategory && (
-          <ServiceDetailPage
-            shop={selectedShop}
-            category={selectedCategory}
-            onSubmit={handleServiceSubmit}
-            onBack={navigateBack}
+      {/* Customer Routes with Persistent Layout */}
+      <Route path="/dashboard" element={
+        isLoading ? (
+          <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center text-white">Loading...</div>
+        ) : (
+          <CustomerLayout user={user} orders={orders} onLogout={handleLogout} />
+        )
+      }>
+        <Route index element={
+          <CategoryPage
+            user={user!}
+            orders={orders.filter((o) => o?.userId === user?.id)}
+            categories={categories}
+            shops={shops}
+            onCategorySelect={handleCategorySelect}
+            onViewOrders={() => navigate("/dashboard/orders")}
+            onLogout={handleLogout}
+            onViewProfile={() => navigate("/dashboard/profile")}
           />
-        )}
-
-      {currentPage === "schedule" && selectedShop && (
-        <SchedulePage
-          shop={selectedShop}
-          deliveryPackage={serviceDetail?.deliveryPackage}
-          onSubmit={handleScheduleSubmit}
-          onBack={navigateBack}
-        />
-      )}
-
-      {currentPage === "payment" &&
-        scheduleData &&
-        selectedShop && (
-          <PaymentPage
-            shop={selectedShop}
-            serviceDetail={serviceDetail}
-            scheduleData={scheduleData}
-            fileName={uploadedFile?.name}
-            onSubmit={handlePaymentSubmit}
-            onBack={navigateBack}
+        } />
+        <Route path="shops/:categoryId" element={
+          selectedCategory ? (
+            <ShopListPage
+              category={selectedCategory}
+              shops={shops.filter((s) => s.isActive)}
+              onShopSelect={handleShopSelect}
+              onBack={() => navigate("/dashboard")}
+            />
+          ) : <Navigate to="/dashboard" />
+        } />
+        <Route path="service/:shopId" element={
+          selectedShop && selectedCategory ? (
+            <ServiceDetailPage
+              shop={selectedShop}
+              category={selectedCategory}
+              onSubmit={handleServiceSubmit}
+              onBack={() => navigate(`/dashboard/shops/${selectedCategory.id}`)}
+            />
+          ) : <Navigate to="/dashboard" />
+        } />
+        <Route path="schedule" element={
+          selectedShop ? (
+            <SchedulePage
+              shop={selectedShop}
+              deliveryPackage={serviceDetail?.deliveryPackage}
+              onSubmit={handleScheduleSubmit}
+              onBack={() => navigate(`/dashboard/service/${selectedShop.id}`)}
+            />
+          ) : <Navigate to="/dashboard" />
+        } />
+        <Route path="payment" element={
+          scheduleData && selectedShop ? (
+            <PaymentPage
+              shop={selectedShop}
+              serviceDetail={serviceDetail}
+              scheduleData={scheduleData}
+              fileName={uploadedFile?.name}
+              onSubmit={handlePaymentSubmit}
+              onBack={() => navigate("/dashboard/schedule")}
+            />
+          ) : <Navigate to="/dashboard" />
+        } />
+        <Route path="orders" element={
+          <OrderTrackingPage
+            orders={orders.filter((o) => o?.userId === user?.id)}
+            shops={shops}
+            currentOrder={currentOrder}
+            onStatusUpdate={handleOrderStatusUpdate}
+            onNavigateToRating={navigateToRating}
+            onBack={() => navigate("/dashboard")}
+            onLogout={handleLogout}
+            onViewProfile={() => navigate("/dashboard/profile")}
+            user={user}
           />
-        )}
-
-      {currentPage === "orderTracking" && (
-        <OrderTrackingPage
-          orders={orders.filter((o) => o.userId === user?.id)}
-          shops={shops}
-          currentOrder={currentOrder}
-          onStatusUpdate={handleOrderStatusUpdate}
-          onNavigateToRating={navigateToRating}
-          onBack={() => setCurrentPage("category")}
-        />
-      )}
-
-      {currentPage === "rating" &&
-        selectedShop &&
-        currentOrder && (
-          <RatingPage
-            shop={selectedShop}
-            order={currentOrder}
-            onSubmit={handleRatingSubmit}
-            onBack={navigateBack}
+        } />
+        <Route path="rating" element={
+          selectedShop && currentOrder ? (
+            <RatingPage
+              shop={selectedShop}
+              order={currentOrder}
+              onSubmit={handleRatingSubmit}
+              onBack={() => navigate("/dashboard/orders")}
+            />
+          ) : <Navigate to="/dashboard/orders" />
+        } />
+        <Route path="profile" element={
+          <ProfilePage
+            user={user!}
+            orders={orders.filter((o) => o?.userId === user?.id)}
+            onBack={() => navigate("/dashboard")}
+            onUpdateProfile={handleUpdateProfile}
+            onLogout={handleLogout}
+            onViewOrders={() => navigate("/dashboard/orders")}
+            onGoHome={() => navigate("/dashboard")}
           />
-        )}
+        } />
+      </Route>
 
-      {currentPage === "adminDashboard" && user && (
-        <AdminDashboard
-          user={user}
-          shops={shops}
-          users={users}
-          orders={orders}
-          categories={categories}
-          onUpdateShops={setShops}
-          onUpdateUsers={setUsers}
-          onUpdateOrders={setOrders}
-          onUpdateCategories={setCategories}
-          onLogout={handleLogout}
-        />
-      )}
+      {/* Admin & Shop Dashboard Routes (Refactored for Refresh Check) */}
+      <Route path="/admin" element={
+        isLoading ? (
+          <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center text-white">Loading...</div>
+        ) : user && user.role === "admin" ? (
+          <AdminDashboard
+            user={user}
+            shops={shops}
+            users={users}
+            orders={orders}
+            categories={categories}
+            onUpdateShops={setShops}
+            onUpdateUsers={setUsers}
+            onUpdateOrders={setOrders}
+            onUpdateCategories={setCategories}
+            onLogout={handleLogout}
+          />
+        ) : <Navigate to="/" />
+      } />
+      <Route path="/shop-dashboard" element={
+        isLoading ? (
+          <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center text-white">Loading...</div>
+        ) : user && user.role === "shop" ? (
+          <ShopDashboard
+            user={user}
+            shops={shops}
+            orders={orders.filter(o => shops.find(s => s.userId === user.id)?.id === o.shopId)}
+            users={users}
+            onUpdateOrders={setOrders}
+            onUpdateShops={setShops}
+            onLogout={handleLogout}
+          />
+        ) : <Navigate to="/" />
+      } />
 
-      {currentPage === "shopDashboard" && user && (
-        <ShopDashboard
-          user={user}
-          shops={shops}
-          orders={orders.filter((o) => {
-            // Find shop associated with this user
-            const userShop = shops.find(
-              (s) => s.userId === user.id,
-            );
-            return userShop ? o.shopId === userShop.id : false;
-          })}
-          users={users}
-          onUpdateOrders={setOrders}
-          onUpdateShops={setShops}
-          onLogout={handleLogout}
-        />
-      )}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
+}
 
-      {currentPage === "landingPage" && (
-        <LandingPage onNavigateToLogin={() => setCurrentPage("roleSelection")} shops={shops} />
-      )}
-    </div>
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
